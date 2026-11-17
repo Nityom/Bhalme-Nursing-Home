@@ -1,0 +1,121 @@
+import { ConvexHttpClient } from "convex/browser";
+// @ts-ignore
+import { api } from "@/convex/_generated/api";
+import { Patient } from "@/types/patient";
+
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+if (!convexUrl) {
+    throw new Error("NEXT_PUBLIC_CONVEX_URL is not configured.");
+}
+const convex = new ConvexHttpClient(convexUrl);
+
+const formatPatient = (p: any): Patient => ({
+    ...p,
+    id: p._id,
+    age: Number(p.age),
+    reference_number: (p.reference_number || '').replace(/^CH/i, 'CRX'),
+});
+
+export const migratePatientsToCRX = async () => {
+    try {
+        await convex.mutation(api.patients.migratePrefixToCRX, {});
+    } catch (e) {
+        console.warn("Migration to CRX skipped:", e);
+    }
+};
+
+export const getNextPatientReference = async (): Promise<string> => {
+    try {
+        const next = await convex.query(api.patients.getNextReferenceNumber, {});
+        return next || 'CRX0003';
+    } catch (e) {
+        return 'CRX0003';
+    }
+};
+
+export const createPatient = async (patient: Omit<Patient, 'id' | 'created_at' | 'updated_at' | 'reference_number'>) => {
+    const data = await convex.mutation(api.patients.create, {
+        name: patient.name,
+        age: String(patient.age),
+        sex: patient.sex as "Male" | "Female" | "Other",
+        phone_number: patient.phone_number,
+        address: (patient as any).address,
+        email: (patient as any).email,
+        whatsapp_number: (patient as any).whatsapp_number,
+    });
+    return data;
+}
+
+export const getPatientByPhoneNumber = async (phoneNumber: string, name?: string): Promise<Patient | null> => {
+    try {
+        const data = await convex.query(api.patients.getByPhoneAndName, {
+            phone_number: phoneNumber,
+            name: name ? name.trim() : undefined,
+        });
+        return data ? formatPatient(data) : null;
+    } catch {
+        const fallback = await convex.query(api.patients.getByPhoneNumber, {
+            phone_number: phoneNumber,
+            name: name ? name.trim() : undefined,
+        });
+        return fallback ? formatPatient(fallback) : null;
+    }
+}
+
+export const getOrCreatePatient = async (patient: Omit<Patient, 'id' | 'created_at' | 'updated_at' | 'reference_number'>): Promise<Patient> => {
+    const existingPatient = await getPatientByPhoneNumber(patient.phone_number, patient.name);
+    if (existingPatient) {
+        if ((patient as any).email && (patient as any).email.trim() && (patient as any).email.trim() !== (existingPatient as any).email) {
+            try {
+                await updatePatient(existingPatient.id, { email: (patient as any).email.trim() });
+                (existingPatient as any).email = (patient as any).email.trim();
+            } catch (err) {
+                console.error("Failed to update patient email in getOrCreatePatient:", err);
+            }
+        }
+        return existingPatient;
+    }
+
+    const newPatientId = await createPatient(patient);
+    const newPatient = await convex.query(api.patients.getById, { id: newPatientId });
+    return formatPatient(newPatient!);
+}
+
+export const getPatients = async (): Promise<Patient[]> => {
+    const data = await convex.query(api.patients.list);
+    return data.map(formatPatient);
+};
+
+export const getPatientById = async (id: string): Promise<Patient | null> => {
+    const data = await convex.query(api.patients.getById, { id: id as any });
+    return data ? formatPatient(data) : null;
+};
+
+export const updatePatient = async (id: string, updates: Partial<Omit<Patient, 'id' | 'created_at' | 'updated_at'>>) => {
+    const updateData: any = { id, ...updates };
+    if (updates.age !== undefined) {
+        updateData.age = String(updates.age);
+    }
+    const data = await convex.mutation(api.patients.update, updateData);
+    return formatPatient(data);
+};
+
+export const deletePatient = async (id: string) => {
+    // Temporary UI-generated IDs should not be sent to the database
+    if (!id || id === 'undefined' || id === 'null' || id.toString().startsWith('TMP-')) {
+        return true;
+    }
+    await convex.mutation(api.patients.remove, { id: id as any });
+    return true;
+};
+
+export const searchPatients = async (searchTerm: string): Promise<Patient[]> => {
+    if (!searchTerm) return [];
+    const data = await convex.query(api.patients.search, { searchTerm });
+    return data.map(formatPatient);
+};
+
+export const getPatientByReference = async (referenceNumber: string): Promise<Patient | null> => {
+    const data = await convex.query(api.patients.getByReference, { reference_number: referenceNumber });
+    return data ? formatPatient(data) : null;
+};

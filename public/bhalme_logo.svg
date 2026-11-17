@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 120" width="500" height="120">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0284c7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0369a1;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="crossGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#b91c1c;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Hospital Shield / Emblem -->
+  <g transform="translate(15, 10)">
+    <rect x="0" y="0" width="100" height="100" rx="22" fill="url(#grad1)" />
+    <!-- White Circle -->
+    <circle cx="50" cy="50" r="38" fill="#ffffff" />
+    <!-- Medical Cross -->
+    <path d="M43 28 H57 V43 H72 V57 H57 V72 H43 V57 H28 V43 H43 Z" fill="url(#crossGrad)" rx="3" />
+  </g>
+
+  <!-- Hospital Name Text -->
+  <text x="130" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="28" font-weight="900" fill="#0f172a" letter-spacing="0.5">
+    BHALME
+  </text>
+  <text x="250" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="28" font-weight="700" fill="#0284c7" letter-spacing="0.5">
+    NURSING HOME
+  </text>
+
+  <!-- Tagline / Subtitle -->
+  <text x="132" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#64748b" letter-spacing="1.5">
+    COMPREHENSIVE HEALTHCARE &amp; CLINICAL CARE
+  </text>
+
+  <!-- Minimal Decorative Line -->
+  <rect x="132" y="92" width="340" height="2" rx="1" fill="#e2e8f0" />
+</svg>

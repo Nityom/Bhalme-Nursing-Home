@@ -1,0 +1,1884 @@
+'use client';
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  ChevronDown,
+  Calendar,
+  RotateCcw,
+  Copy,
+  BookmarkPlus,
+  FolderOpen,
+  Search,
+  Check,
+  X,
+  Sparkles,
+  Layers,
+  Clock,
+  Undo2,
+} from 'lucide-react';
+import MedicineSearchInput from './MedicineSearchInput';
+import SectionTemplatePicker from './SectionTemplatePicker';
+import { Medicine } from '@/services/medicine';
+import { findMasterMedicine } from '@/services/defaultMedicinesCatalog';
+import { MedicineEntry, DosageSchedule } from '@/services/prescription';
+import { calculateMedicineQuantity } from '@/lib/medicineQuantity';
+import {
+  CLINICAL_SECTION_PRESETS,
+  ClinicalSectionPreset,
+  getSectionCustomTemplates,
+  saveSectionCustomTemplate,
+  deleteSectionCustomTemplate,
+  fetchSectionTemplatesFromConvex,
+} from '@/services/clinicalSectionPresets';
+
+interface HealthPlixMedicineTableProps {
+  medicines: MedicineEntry[];
+  onChange: (medicines: MedicineEntry[]) => void;
+  medicineOptions: Medicine[];
+  prescriptionDate?: string;
+  onOpenLoadTemplate?: () => void;
+  onOpenSaveTemplate?: () => void;
+  onAutoSaveMedicine?: (name: string, composition?: string) => void;
+  category?: string;
+  onRestorePreviousMedicines?: () => void;
+}
+
+const DOSAGE_OPTIONS = [
+  '1-0-0',
+  '0-1-0',
+  '0-0-1',
+  '1-0-1',
+  '1-1-0',
+  '0-1-1',
+  '1-1-1',
+  '1-1-1-1',
+  '1-0-0-1',
+  'Stat',
+  'SOS',
+  'As Directed',
+];
+const UNIT_OPTIONS = ['tab', 'cap', 'ml', 'lotion', 'ointment', 'drops', 'sachet', 'spray', 'syrup', 'inj'];
+const TIME_OPTIONS = [
+  '',
+  'Morning',
+  'Afternoon',
+  'Night',
+  'Bedtime',
+  'Morning & Night',
+  'Morning & Afternoon',
+  'Afternoon & Night',
+  'Morning, Afternoon & Night',
+  '4 Times a Day',
+  '8 Hourly',
+  '12 Hourly',
+  'SOS',
+  'Stat',
+];
+const WHEN_OPTIONS = ['After Food', 'Before Food', 'With Food', 'Empty Stomach', 'At Bedtime', 'As Directed'];
+const WHERE_OPTIONS = ['', 'oral', 'face', 'scalp', 'affected area', 'skin', 'left eye', 'right eye', 'throat', 'joints', 'chest', 'back'];
+const FREQUENCY_OPTIONS = ['daily', 'alternate day', 'twice a week', 'thrice a week', 'weekly', 'once a month', 'SOS', 'STAT'];
+const DURATION_OPTIONS = ['3 days', '5 days', '7 days', '10 days', '15 days', '21 days', '25 days', '1 month', '2 months', '3 months'];
+
+export function getTimeFromDosage(dosage?: string): string {
+  if (!dosage) return '';
+  const d = dosage.trim().toLowerCase().replace(/\s+/g, '');
+  if (d === '1-0-0') return 'Morning';
+  if (d === '0-1-0') return 'Afternoon';
+  if (d === '0-0-1') return 'Night';
+  if (d === '1-0-1') return 'Morning & Night';
+  if (d === '1-1-0') return 'Morning & Afternoon';
+  if (d === '0-1-1') return 'Afternoon & Night';
+  if (d === '1-1-1') return 'Morning, Afternoon & Night';
+  if (d === '1-1-1-1') return '4 Times a Day';
+  if (d === '1-0-0-1') return 'Morning & Night';
+  if (d === '1/2-0-1/2' || d === '0.5-0-0.5') return 'Morning & Night';
+  if (d === '2-0-2') return 'Morning & Night';
+  if (d === 'sos') return 'SOS';
+  if (d === 'stat') return 'Stat';
+  return '';
+}
+
+export function getMarathiNoteForDosage(dosage?: string, when: string = 'After Food'): string {
+  if (!dosage) return '';
+  const dClean = dosage.trim().toLowerCase().replace(/\s+/g, '');
+  const wLower = (when || '').toLowerCase();
+  const isBefore = wLower.includes('before') || (when || '').includes('आधी') || (when || '').includes('पूर्वी');
+  const isEmpty = wLower.includes('empty') || (when || '').includes('उपाशी');
+  const isBedtime = wLower.includes('bedtime') || (when || '').includes('झोपण्या');
+
+  if (isEmpty) return 'सकाळी उपाशीपोटी';
+  if (isBedtime) return 'रात्री झोपण्यापूर्वी';
+
+  const mealSuffix = isBefore ? 'जेवणाआधी' : 'जेवणानंतर';
+  const breakfastSuffix = isBefore ? 'नाश्त्याआधी' : 'नाश्त्यानंतर';
+
+  if (dClean === '1-0-0') return `सकाळी ${breakfastSuffix}`;
+  if (dClean === '0-1-0') return `दुपारी ${mealSuffix}`;
+  if (dClean === '0-0-1') return `रात्री ${mealSuffix}`;
+  if (dClean === '1-0-1') return `सकाळी ${breakfastSuffix} आणि रात्री ${mealSuffix}`;
+  if (dClean === '1-1-0') return `सकाळी ${breakfastSuffix} आणि दुपारी ${mealSuffix}`;
+  if (dClean === '0-1-1') return `दुपारी ${mealSuffix} आणि रात्री ${mealSuffix}`;
+  if (dClean === '1-1-1') return `सकाळी ${breakfastSuffix}, दुपारी ${mealSuffix} आणि रात्री ${mealSuffix}`;
+  if (dClean === '1/2-0-1/2' || dClean === '0.5-0-0.5') return `सकाळी ${breakfastSuffix} आणि रात्री ${mealSuffix} (अर्धी गोळी)`;
+  if (dClean === '2-0-2') return `सकाळी ${breakfastSuffix} आणि रात्री ${mealSuffix} (२ गोळ्या)`;
+  if (dClean === '1-1-1-1') return `दिवसातून ४ वेळा (सकाळी, दुपारी, संध्याकाळी आणि रात्री ${mealSuffix})`;
+  if (dClean === '1-0-0-1') return `सकाळी ${breakfastSuffix} आणि रात्री ${mealSuffix}`;
+  if (dClean === 'sos') return 'गरज भासल्यास (SOS)';
+  if (dClean === 'stat') return 'तातडीने (STAT)';
+
+  return '';
+}
+
+export interface LinkedMedicineProfile {
+  name?: string;
+  dosage?: string;
+  unit?: string;
+  time?: string;
+  when?: string;
+  where?: string;
+  frequency?: string;
+  duration?: string;
+  details?: string;
+  notes?: string;
+}
+
+const DEFAULT_LINKED_MEDICINES: Record<string, LinkedMedicineProfile> = {
+  PARACETAMOL: { dosage: '1-0-1', unit: 'tab', time: 'Morning & Night', when: 'After Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'नाश्ता / जेवणानंतर' },
+  'DOLO 650': { dosage: '1-0-1', unit: 'tab', time: 'Morning & Night', when: 'After Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'ताप किंवा अंगदुखी असल्यास' },
+  'PAN 40': { dosage: '1-0-0', unit: 'tab', time: 'Morning', when: 'Empty Stomach', where: 'oral', frequency: 'daily', duration: '15 days', notes: 'सकाळी उपाशीपोटी' },
+  'PANTOCID 40': { dosage: '1-0-0', unit: 'tab', time: 'Morning', when: 'Empty Stomach', where: 'oral', frequency: 'daily', duration: '15 days', notes: 'सकाळी उपाशीपोटी' },
+  'ZERODOL-SP': { dosage: '1-0-1', unit: 'tab', time: 'Morning & Night', when: 'After Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'जेवणानंतर पाण्यासोबत' },
+  'ZERODOL-P': { dosage: '1-0-1', unit: 'tab', time: 'Morning & Night', when: 'After Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'जेवणानंतर' },
+  'CHYMORAL FORTE': { dosage: '1-0-1', unit: 'tab', time: 'Morning & Night', when: 'Before Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'सूज कमी होण्यासाठी' },
+  'SHELCAL 500': { dosage: '0-1-0', unit: 'tab', time: 'Afternoon', when: 'After Food', where: 'oral', frequency: 'daily', duration: '1 month', notes: 'दुपारी जेवणानंतर' },
+  TRAMADOL: { dosage: 'SOS', unit: 'tab', time: 'Night', when: 'After Food', where: 'oral', frequency: 'SOS', duration: '3 days', notes: 'तीव्र वेदना असल्यास' },
+  ULTRACET: { dosage: 'SOS', unit: 'tab', time: 'Night', when: 'After Food', where: 'oral', frequency: 'SOS', duration: '3 days', notes: 'तीव्र वेदनेसाठी' },
+  VOLINI: { dosage: '0-0-1', unit: 'ointment', time: 'Night', when: 'As Directed', where: 'affected area', frequency: 'daily', duration: '15 days', notes: 'Apply gently on affected joint' },
+  OMNIGEL: { dosage: '0-0-1', unit: 'ointment', time: 'Night', when: 'As Directed', where: 'affected area', frequency: 'daily', duration: '15 days', notes: 'Apply gently on affected area' },
+  THIOCHEST: { dosage: '1-0-1', unit: 'cap', time: 'Morning & Night', when: 'After Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'स्नायूंच्या आखडणेवर' },
+  'AUGMENTIN 625': { dosage: '1-0-1', unit: 'tab', time: 'Morning & Night', when: 'After Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'Full antibiotic course' },
+};
+
+const getCustomMedicineLinks = (): Record<string, LinkedMedicineProfile> => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem('bhalme_custom_medicine_links_v1');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveCustomMedicineLink = (name: string, profile: Partial<LinkedMedicineProfile>) => {
+  if (typeof window === 'undefined' || !name.trim()) return;
+  try {
+    const map = getCustomMedicineLinks();
+    const key = name.trim().toUpperCase();
+    map[key] = { ...(map[key] || {}), ...profile };
+    localStorage.setItem('bhalme_custom_medicine_links_v1', JSON.stringify(map));
+  } catch {}
+};
+
+const getLinkedMedicineDefaults = (name: string): LinkedMedicineProfile => {
+  const cleanName = name.trim().toUpperCase();
+  const customMap = getCustomMedicineLinks();
+
+  if (customMap[cleanName]) return customMap[cleanName];
+  if (DEFAULT_LINKED_MEDICINES[cleanName]) return DEFAULT_LINKED_MEDICINES[cleanName];
+
+  const master = findMasterMedicine(cleanName);
+  if (master) {
+    return {
+      dosage: master.dosage || '0-0-1',
+      unit: master.unit || 'tab',
+      time: '',
+      when: master.when || 'After Food',
+      where: master.where || 'oral',
+      frequency: master.frequency || 'daily',
+      duration: master.duration || '15 days',
+      details: master.composition || '',
+      notes: '',
+    };
+  }
+
+  for (const [k, v] of Object.entries(customMap)) {
+    if (cleanName.includes(k) || k.includes(cleanName)) return v;
+  }
+  for (const [k, v] of Object.entries(DEFAULT_LINKED_MEDICINES)) {
+    if (cleanName.includes(k) || k.includes(cleanName)) return v;
+  }
+
+  const isLotion = cleanName.includes('LOTION') || cleanName.includes('GEL') || cleanName.includes('OINTMENT');
+  const isCap = cleanName.includes('CAP');
+  const isDrops = cleanName.includes('DROP');
+  const isSyp = cleanName.includes('SYP') || cleanName.includes('SYRUP');
+
+  return {
+    dosage: '0-0-1',
+    unit: isLotion ? 'ointment' : isCap ? 'cap' : isDrops ? 'drops' : isSyp ? 'ml' : 'tab',
+    time: '',
+    when: 'After Food',
+    where: isLotion ? 'affected area' : 'oral',
+    frequency: 'daily',
+    duration: '15 days',
+    details: '',
+    notes: '',
+  };
+};
+
+const NOTE_PRESETS = [
+  'सकाळी नाश्त्यानंतर',
+  'दुपारी जेवणानंतर',
+  'रात्री जेवणानंतर',
+  'सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर',
+  'सकाळी नाश्त्यानंतर आणि दुपारी जेवणानंतर',
+  'दुपारी जेवणानंतर आणि रात्री जेवणानंतर',
+  'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर आणि रात्री जेवणानंतर',
+  'सकाळी उपाशीपोटी',
+  'जेवणाआधी',
+  'जेवणानंतर',
+  'पाण्यासोबत घ्यावे',
+  'दूधासोबत घ्यावे',
+  'गरज भासल्यास (SOS)',
+  'केसांच्या मुळाशी',
+  'Take with plenty of water',
+  'Apply gently on affected area',
+];
+
+// Helper to format any date into clean uniform DD/MM/YYYY
+function formatToDisplayDate(dateStr: string | undefined): string {
+  if (!dateStr) return '';
+  const clean = dateStr.trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(clean)) return clean;
+  if (/^\d{2}-\d{2}-\d{4}$/.test(clean)) return clean.replace(/-/g, '/');
+  const parts = clean.split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  const d = new Date(clean);
+  if (isNaN(d.getTime())) return clean;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+// Helper to compute end date given a start date and duration string
+function calculateEndDate(startDateStr: string | undefined, durationStr: string | undefined): string {
+  const baseDate = startDateStr ? new Date(startDateStr) : new Date();
+  if (isNaN(baseDate.getTime())) return '';
+  if (!durationStr) return '';
+
+  let daysToAdd = 0;
+  const matchNum = durationStr.match(/\d+/);
+  if (matchNum) {
+    const num = parseInt(matchNum[0], 10);
+    if (/month/i.test(durationStr)) {
+      daysToAdd = num * 30;
+    } else if (/week/i.test(durationStr)) {
+      daysToAdd = num * 7;
+    } else {
+      daysToAdd = num;
+    }
+  }
+
+  if (daysToAdd === 0) return '';
+  const endDate = new Date(baseDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+  const yyyy = endDate.getFullYear();
+  const mm = String(endDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(endDate.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function normalizePresetMedicines(rawList: any[], baseDate?: string): MedicineEntry[] {
+  if (!Array.isArray(rawList)) return [];
+  const validBase = baseDate || new Date().toISOString().slice(0, 10);
+  return rawList.map((m, idx) => {
+    const dur = m.duration || '15 days';
+    const sFrom = m.start_from || validBase;
+    const sTo = m.to_date || calculateEndDate(sFrom, dur);
+    const schedules: DosageSchedule[] =
+      m.schedules && m.schedules.length > 0
+        ? m.schedules.map((s: any, sIdx: number) => ({
+            id: s.id || `sch_p_${Date.now()}_${idx}_${sIdx}`,
+            dosage: s.dosage || m.dosage || '1-0-1',
+            unit: s.unit || m.unit || 'tab',
+            time: s.time || m.time || '',
+            when: s.when || m.when || 'After Food',
+            where: s.where || m.where || '',
+            frequency: s.frequency || m.frequency || 'daily',
+            duration: s.duration || dur,
+            start_from: s.start_from || sFrom,
+            to_date: s.to_date || calculateEndDate(s.start_from || sFrom, s.duration || dur),
+            details: s.details || '',
+            notes: s.notes || s.note || m.note || m.notes || '',
+          }))
+        : [
+            {
+              id: `sch_p_${Date.now()}_${idx}`,
+              dosage: m.dosage || '1-0-1',
+              unit: m.unit || 'tab',
+              time: m.time || '',
+              when: m.when || 'After Food',
+              where: m.where || '',
+              frequency: m.frequency || 'daily',
+              duration: dur,
+              start_from: sFrom,
+              to_date: sTo,
+              details: m.details || '',
+              notes: m.note || m.notes || '',
+            },
+          ];
+
+    const master = findMasterMedicine(m.name || '');
+    const comp = m.composition || master?.composition || '';
+
+    return {
+      name: m.name || '',
+      dosage: m.dosage || schedules[0].dosage || master?.dosage || '1-0-1',
+      unit: m.unit || schedules[0].unit || master?.unit || 'tab',
+      when: m.when || schedules[0].when || master?.when || 'After Food',
+      where: m.where || schedules[0].where || master?.where || '',
+      frequency: m.frequency || schedules[0].frequency || master?.frequency || 'daily',
+      duration: dur,
+      composition: comp,
+      note: m.note || m.notes || schedules[0].notes || '',
+      instructions: m.instructions || '',
+      quantity: typeof m.quantity === 'number' ? m.quantity : calculateMedicineQuantity({ schedules }),
+      quantity_manual: m.quantity_manual === true,
+      start_from: sFrom,
+      to_date: sTo,
+      schedules,
+    };
+  });
+}
+
+export default function HealthPlixMedicineTable({
+  medicines,
+  onChange,
+  medicineOptions,
+  prescriptionDate = new Date().toISOString().slice(0, 10),
+  onOpenLoadTemplate,
+  onOpenSaveTemplate,
+  onAutoSaveMedicine,
+  category,
+  onRestorePreviousMedicines,
+}: HealthPlixMedicineTableProps) {
+  const [editingCompositionIndex, setEditingCompositionIndex] = useState<number | null>(null);
+  const [compositionDraft, setCompositionDraft] = useState<string>('');
+  const [newMedSearch, setNewMedSearch] = useState<string>('');
+
+  // Medical Template Dialog states
+  const [isMedicalModalOpen, setIsMedicalModalOpen] = useState(false);
+  const [isSaveMedicalModalOpen, setIsSaveMedicalModalOpen] = useState(false);
+  const [newMedTemplateName, setNewMedTemplateName] = useState('');
+  const [newMedTemplateCat, setNewMedTemplateCat] = useState(category || 'General Medicine');
+  const [medModalTab, setMedModalTab] = useState<'presets' | 'saved'>('saved');
+  const [medSearchQuery, setMedSearchQuery] = useState('');
+  const [savedMedTemplates, setSavedMedTemplates] = useState<ClinicalSectionPreset[]>([]);
+  const [medToastMessage, setMedToastMessage] = useState<string | null>(null);
+  const [medSaveStatus, setMedSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const medStatusTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Common duration controls for all medicines
+  const [customCommonDays, setCustomCommonDays] = useState<string>('');
+  const [showDurationMenu, setShowDurationMenu] = useState<boolean>(false);
+  const durationMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (durationMenuRef.current && !durationMenuRef.current.contains(event.target as Node)) {
+        setShowDurationMenu(false);
+      }
+    };
+    if (showDurationMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDurationMenu]);
+
+  const triggerMedAutoSaved = useCallback(() => {
+    setMedSaveStatus('saved');
+    if (medStatusTimerRef.current) clearTimeout(medStatusTimerRef.current);
+    medStatusTimerRef.current = setTimeout(() => {
+      setMedSaveStatus('idle');
+    }, 2200);
+  }, []);
+
+  const loadSavedMedTemplates = useCallback(() => {
+    const list = getSectionCustomTemplates('medicines');
+    setSavedMedTemplates(list);
+    fetchSectionTemplatesFromConvex('medicines').then((updated) => {
+      if (updated && Array.isArray(updated)) setSavedMedTemplates(updated);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (isMedicalModalOpen || isSaveMedicalModalOpen) {
+      loadSavedMedTemplates();
+    }
+  }, [isMedicalModalOpen, isSaveMedicalModalOpen, loadSavedMedTemplates]);
+
+  const showMedToast = (msg: string) => {
+    setMedToastMessage(msg);
+    setTimeout(() => setMedToastMessage(null), 2500);
+  };
+
+  const handleApplyMedPreset = (presetData: any[], mode: 'replace' | 'append' = 'replace') => {
+    const normalized = normalizePresetMedicines(presetData, prescriptionDate);
+    if (mode === 'replace') {
+      onChange(normalized);
+      showMedToast(`Loaded ${normalized.length} medicines into table`);
+    } else {
+      onChange([...medicines, ...normalized]);
+      showMedToast(`Added ${normalized.length} medicines to table`);
+    }
+    setTimeout(() => {
+      setIsMedicalModalOpen(false);
+    }, 350);
+  };
+
+  const handleSaveMedTemplate = (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!newMedTemplateName.trim()) {
+      showMedToast('Please enter a medical template name');
+      return;
+    }
+    if (medicines.length === 0) {
+      showMedToast('No medicines to save in template');
+      return;
+    }
+    saveSectionCustomTemplate('medicines', newMedTemplateName.trim(), medicines, newMedTemplateCat);
+    loadSavedMedTemplates();
+    setNewMedTemplateName('');
+    showMedToast('Medical template saved successfully!');
+    setMedModalTab('saved');
+    setTimeout(() => {
+      setIsSaveMedicalModalOpen(false);
+    }, 500);
+  };
+
+  const handleDeleteMedTemplate = (id: string, name: string) => {
+    if (confirm(`Delete medical template "${name}"?`)) {
+      deleteSectionCustomTemplate('medicines', id);
+      loadSavedMedTemplates();
+      showMedToast(`Deleted "${name}"`);
+    }
+  };
+
+  // Ensure every medicine has at least 1 schedule in its `schedules` array
+  const normalizeMedicineSchedules = (med: MedicineEntry): DosageSchedule[] => {
+    if (med.schedules && med.schedules.length > 0) {
+      return med.schedules;
+    }
+    return [
+      {
+        id: 'sch_init',
+        dosage: med.dosage || '0-0-1',
+        unit: med.unit || (med.dosage && /ml|syp/i.test(med.name) ? 'ml' : 'tab'),
+        time: '',
+        when: med.when || 'After Food',
+        where: med.where || '',
+        frequency: med.frequency || 'daily',
+        duration: med.duration || '5 days',
+        start_from: med.start_from || prescriptionDate,
+        to_date: med.to_date || calculateEndDate(prescriptionDate, med.duration || '5 days'),
+        details: med.details || '',
+        notes: med.note || '',
+      },
+    ];
+  };
+
+  // Apply common duration to all prescribed medicines in one click
+  const handleApplyCommonDuration = (durationInput: string | number) => {
+    if (!durationInput) return;
+    const raw = String(durationInput).trim();
+    if (!raw) return;
+
+    let durStr = raw;
+    if (/^\d+$/.test(raw)) {
+      durStr = `${raw} days`;
+    }
+
+    if (medicines.length === 0) {
+      showMedToast('Please add medicines first');
+      return;
+    }
+
+    const updated = medicines.map((med) => {
+      const currentSchedules = normalizeMedicineSchedules(med);
+      const updatedSchedules = currentSchedules.map((sch) => {
+        const sFrom = sch.start_from || prescriptionDate;
+        const sTo = calculateEndDate(sFrom, durStr);
+        return {
+          ...sch,
+          duration: durStr,
+          to_date: sTo,
+        };
+      });
+
+      const sFrom = med.start_from || prescriptionDate;
+      const sTo = calculateEndDate(sFrom, durStr);
+
+      const updatedMed: MedicineEntry = {
+        ...med,
+        duration: durStr,
+        freq_duration: durStr,
+        to_date: sTo,
+        schedules: updatedSchedules,
+        quantity_manual: false,
+      };
+
+      const calculatedQuantity = calculateMedicineQuantity(updatedMed);
+      if (calculatedQuantity !== undefined) {
+        updatedMed.quantity = calculatedQuantity;
+      }
+
+      return updatedMed;
+    });
+
+    onChange(updated);
+    showMedToast(`Applied ${durStr} duration to all ${medicines.length} medicines`);
+  };
+
+  // Add a new sub-schedule for a medicine (+ button clicked)
+  const handleAddSchedule = (medIndex: number) => {
+    const updated = [...medicines];
+    const target = updated[medIndex];
+    const currentSchedules = normalizeMedicineSchedules(target);
+
+    // Default the new schedule to complementary/alternate timing
+    const lastSch = currentSchedules[currentSchedules.length - 1];
+    const newSch: DosageSchedule = {
+      id: `sch_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      dosage: lastSch.dosage === '0-0-1' ? '1-0-0' : '0-0-1',
+      unit: lastSch.unit || 'tab',
+      time: '',
+      when: lastSch.when || 'After Food',
+      where: lastSch.where || '',
+      frequency: lastSch.frequency === 'daily' ? 'alternate day' : 'daily',
+      duration: lastSch.duration || '25 days',
+      start_from: lastSch.start_from || prescriptionDate,
+      to_date: calculateEndDate(lastSch.start_from || prescriptionDate, lastSch.duration || '25 days'),
+      details: '',
+      notes: '',
+    };
+
+    target.schedules = [...currentSchedules, newSch];
+    const calculatedQuantity = calculateMedicineQuantity(target);
+    if (calculatedQuantity !== undefined) {
+      target.quantity = calculatedQuantity;
+      target.quantity_manual = false;
+    }
+    // Keep top-level in sync
+    target.dosage = target.schedules.map(s => s.dosage).join(' / ');
+    target.frequency = target.schedules.map(s => s.frequency).join(' / ');
+    target.duration = target.schedules.map(s => s.duration).join(' / ');
+    onChange(updated);
+  };
+
+  // Remove a schedule or entire medicine if only 1 schedule left
+  const handleRemoveSchedule = (medIndex: number, schIndex: number) => {
+    const updated = [...medicines];
+    const target = updated[medIndex];
+    const currentSchedules = normalizeMedicineSchedules(target);
+
+    if (currentSchedules.length <= 1) {
+      // Remove entire medicine
+      updated.splice(medIndex, 1);
+    } else {
+      currentSchedules.splice(schIndex, 1);
+      target.schedules = currentSchedules;
+      const calculatedQuantity = calculateMedicineQuantity(target);
+      if (calculatedQuantity !== undefined) {
+        target.quantity = calculatedQuantity;
+        target.quantity_manual = false;
+      }
+      target.dosage = currentSchedules[0].dosage;
+      target.frequency = currentSchedules[0].frequency;
+      target.duration = currentSchedules[0].duration;
+    }
+    onChange(updated);
+  };
+
+  // Delete whole medicine
+  const handleDeleteMedicine = (medIndex: number) => {
+    const updated = [...medicines];
+    updated.splice(medIndex, 1);
+    onChange(updated);
+  };
+
+  // Update a schedule field
+  const handleUpdateSchedule = (
+    medIndex: number,
+    schIndex: number,
+    field: keyof DosageSchedule,
+    value: string
+  ) => {
+    const updated = [...medicines];
+    const target = updated[medIndex];
+    const currentSchedules = normalizeMedicineSchedules(target);
+    const sch = { ...currentSchedules[schIndex], [field]: value };
+
+    // Auto calculate to_date when duration or start_from changes
+    if (field === 'duration' || field === 'start_from') {
+      const start = field === 'start_from' ? value : sch.start_from || prescriptionDate;
+      const dur = field === 'duration' ? value : sch.duration;
+      sch.to_date = calculateEndDate(start, dur);
+    }
+
+    // Auto-suggest Marathi notes and timing when dosage is changed (e.g. 1-1-1 -> Morning, Afternoon & Night)
+    if (field === 'dosage') {
+      const autoTime = getTimeFromDosage(value);
+      if (autoTime) {
+        sch.time = autoTime;
+      }
+
+      const currentNotes = (sch.notes || '').trim();
+      const isAutoNote =
+        !currentNotes ||
+        currentNotes.includes('जेवण') ||
+        currentNotes.includes('नाश्त्या') ||
+        currentNotes.includes('उपाशी') ||
+        currentNotes.includes('झोपण्या') ||
+        currentNotes.includes('SOS') ||
+        currentNotes.includes('STAT');
+
+      if (isAutoNote) {
+        const autoNote = getMarathiNoteForDosage(value, sch.when || 'After Food');
+        if (autoNote) {
+          sch.notes = autoNote;
+        }
+      }
+    }
+
+    if (field === 'when') {
+      const isBefore = value.toLowerCase().includes('before') || value.includes('आधी') || value.includes('पूर्वी');
+      const isAfter = value.toLowerCase().includes('after') || value.includes('नंतर');
+      const currentNotes = (sch.notes || '').trim();
+      const isAutoNote =
+        !currentNotes ||
+        currentNotes.includes('जेवण') ||
+        currentNotes.includes('नाश्त्या') ||
+        currentNotes.includes('उपाशी') ||
+        currentNotes.includes('झोपण्या');
+
+      if (isAutoNote) {
+        const autoNote = getMarathiNoteForDosage(sch.dosage || '', value);
+        if (autoNote) {
+          sch.notes = autoNote;
+        }
+      } else {
+        if (isBefore) {
+          sch.notes = (sch.notes || '').replace(/जेवणानंतर/g, 'जेवणाआधी').replace(/नाश्त्यानंतर/g, 'नाश्त्याआधी').replace(/जेवणापूर्वी/g, 'जेवणाआधी').replace(/नाश्त्यापूर्वी/g, 'नाश्त्याआधी');
+        } else if (isAfter) {
+          sch.notes = (sch.notes || '').replace(/जेवणाआधी/g, 'जेवणानंतर').replace(/नाश्त्याआधी/g, 'नाश्त्यानंतर').replace(/जेवणापूर्वी/g, 'जेवणानंतर').replace(/नाश्त्यापूर्वी/g, 'नाश्त्यानंतर');
+        }
+      }
+    }
+
+    currentSchedules[schIndex] = sch;
+    target.schedules = currentSchedules;
+    if (field === 'dosage' || field === 'frequency' || field === 'duration') {
+      const calculatedQuantity = calculateMedicineQuantity(target);
+      if (calculatedQuantity !== undefined) {
+        target.quantity = calculatedQuantity;
+        target.quantity_manual = false;
+      }
+    }
+
+    // Sync primary fields for backwards compatibility with letterhead & billing
+    if (schIndex === 0) {
+      if (field === 'dosage') {
+        target.dosage = value;
+        target.time = sch.time;
+        target.note = sch.notes;
+      }
+      if (field === 'frequency') target.frequency = value;
+      if (field === 'duration') target.duration = value;
+      if (field === 'time') target.time = value;
+      if (field === 'notes') target.note = value;
+      if (field === 'when') {
+        target.when = value;
+        target.note = sch.notes;
+      }
+      if (field === 'where') target.where = value;
+      if (field === 'unit') target.unit = value;
+    } else {
+      target.dosage = currentSchedules.map(s => s.dosage).join(' / ');
+      target.frequency = currentSchedules.map(s => s.frequency).join(' / ');
+      target.duration = currentSchedules.map(s => s.duration).join(' / ');
+    }
+
+    onChange(updated);
+
+    // Auto-save linkage of all 10 related fields for this medicine
+    if (target.name) {
+      saveCustomMedicineLink(target.name, {
+        dosage: sch.dosage,
+        unit: sch.unit,
+        time: sch.time,
+        when: sch.when,
+        where: sch.where,
+        frequency: sch.frequency,
+        duration: sch.duration,
+        details: sch.details || target.composition,
+        notes: sch.notes || target.note,
+      });
+      triggerMedAutoSaved();
+    }
+  };
+
+  // Add new medicine from bottom row
+  const handleSelectNewMedicine = (med: Medicine) => {
+    const linked = getLinkedMedicineDefaults(med.name);
+    const master = findMasterMedicine(med.name);
+    const defaultDuration = linked.duration || master?.duration || '15 days';
+    const comp = med.composition || master?.composition || linked.details || '';
+
+    const newEntry: MedicineEntry = {
+      name: med.name.toUpperCase(),
+      dosage: linked.dosage || master?.dosage || '0-0-1',
+      unit: linked.unit || master?.unit || 'tab',
+      frequency: linked.frequency || master?.frequency || 'daily',
+      duration: defaultDuration,
+      quantity: calculateMedicineQuantity({ dosage: linked.dosage || master?.dosage || '0-0-1', frequency: linked.frequency || master?.frequency || 'daily', duration: defaultDuration }),
+      when: linked.when || master?.when || 'After Food',
+      where: linked.where || master?.where || 'oral',
+      composition: comp,
+      note: linked.notes || '',
+      start_from: prescriptionDate,
+      to_date: calculateEndDate(prescriptionDate, defaultDuration),
+      schedules: [
+        {
+          id: `sch_${Date.now()}`,
+          dosage: linked.dosage || master?.dosage || '0-0-1',
+          unit: linked.unit || master?.unit || 'tab',
+          time: linked.time || '',
+          when: linked.when || master?.when || 'After Food',
+          where: linked.where || master?.where || 'oral',
+          frequency: linked.frequency || master?.frequency || 'daily',
+          duration: defaultDuration,
+          start_from: prescriptionDate,
+          to_date: calculateEndDate(prescriptionDate, defaultDuration),
+          details: comp,
+          notes: linked.notes || '',
+        },
+      ],
+    };
+
+    onChange([...medicines, newEntry]);
+    setNewMedSearch('');
+
+    // Auto-save all related fields linked to this medicine
+    saveCustomMedicineLink(med.name, {
+      dosage: newEntry.dosage,
+      unit: newEntry.unit,
+      time: linked.time,
+      when: newEntry.when,
+      where: newEntry.where,
+      frequency: newEntry.frequency,
+      duration: newEntry.duration,
+      details: newEntry.composition,
+      notes: newEntry.note,
+    });
+
+    if (onAutoSaveMedicine) {
+      onAutoSaveMedicine(med.name.toUpperCase(), comp);
+    }
+    triggerMedAutoSaved();
+  };
+
+  const handleAddNewCustomMedicine = (name: string) => {
+    if (!name.trim()) return;
+    const linked = getLinkedMedicineDefaults(name);
+    const master = findMasterMedicine(name);
+    const defaultDuration = linked.duration || master?.duration || '15 days';
+    const comp = master?.composition || linked.details || '';
+
+    const newEntry: MedicineEntry = {
+      name: name.trim().toUpperCase(),
+      dosage: linked.dosage || master?.dosage || '0-0-1',
+      unit: linked.unit || master?.unit || 'tab',
+      frequency: linked.frequency || master?.frequency || 'daily',
+      duration: defaultDuration,
+      quantity: calculateMedicineQuantity({ dosage: linked.dosage || master?.dosage || '0-0-1', frequency: linked.frequency || master?.frequency || 'daily', duration: defaultDuration }),
+      when: linked.when || master?.when || 'After Food',
+      where: linked.where || master?.where || 'oral',
+      composition: comp,
+      note: linked.notes || '',
+      start_from: prescriptionDate,
+      to_date: calculateEndDate(prescriptionDate, defaultDuration),
+      schedules: [
+        {
+          id: `sch_${Date.now()}`,
+          dosage: linked.dosage || master?.dosage || '0-0-1',
+          unit: linked.unit || master?.unit || 'tab',
+          time: linked.time || '',
+          when: linked.when || master?.when || 'After Food',
+          where: linked.where || master?.where || 'oral',
+          frequency: linked.frequency || master?.frequency || 'daily',
+          duration: defaultDuration,
+          start_from: prescriptionDate,
+          to_date: calculateEndDate(prescriptionDate, defaultDuration),
+          details: comp,
+          notes: linked.notes || '',
+        },
+      ],
+    };
+
+    onChange([...medicines, newEntry]);
+    setNewMedSearch('');
+
+    // Auto-save all related fields linked to this medicine
+    saveCustomMedicineLink(name, {
+      dosage: newEntry.dosage,
+      unit: newEntry.unit,
+      time: linked.time,
+      when: newEntry.when,
+      where: newEntry.where,
+      frequency: newEntry.frequency,
+      duration: newEntry.duration,
+      details: newEntry.composition,
+      notes: newEntry.note,
+    });
+
+    if (onAutoSaveMedicine) {
+      onAutoSaveMedicine(name.trim().toUpperCase(), comp);
+    }
+    triggerMedAutoSaved();
+  };
+
+  return (
+    <div className="w-full bg-white rounded-xl border border-slate-300/80 shadow-xs min-h-0 flex flex-col justify-between">
+      {/* Quick Common Duration Bar for Doctor */}
+      {medicines.length > 0 && (
+        <div className="bg-slate-50/80 border-b border-slate-200 px-3.5 py-2 flex flex-wrap items-center justify-between gap-2.5 text-sm">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 text-emerald-950 font-bold text-sm">
+              <Clock className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Common Duration:</span>
+            </div>
+            <div className="flex items-center gap-1 flex-wrap">
+              {['3 days', '5 days', '7 days', '10 days', '15 days', '21 days', '1 month'].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => handleApplyCommonDuration(d)}
+                  className="px-3 py-1 bg-white hover:bg-emerald-600 hover:text-white text-emerald-900 border border-emerald-300 hover:border-emerald-600 rounded-md text-xs font-bold transition cursor-pointer shadow-2xs"
+                  title={`Apply ${d} to all prescribed medicines`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center border border-emerald-300 rounded-md overflow-hidden bg-white focus-within:border-emerald-600 focus-within:ring-1 focus-within:ring-emerald-500 shadow-2xs">
+              <input
+                type="number"
+                min="1"
+                max="365"
+                placeholder="Days"
+                value={customCommonDays}
+                onChange={(e) => setCustomCommonDays(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && customCommonDays) {
+                    e.preventDefault();
+                    handleApplyCommonDuration(customCommonDays);
+                    setCustomCommonDays('');
+                  }
+                }}
+                className="w-16 px-2 py-1 text-sm text-slate-800 outline-none font-bold text-center"
+              />
+              <span className="text-xs font-medium text-slate-500 pr-2 select-none">days</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (customCommonDays) {
+                  handleApplyCommonDuration(customCommonDays);
+                  setCustomCommonDays('');
+                }
+              }}
+              disabled={!customCommonDays}
+              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-md transition cursor-pointer shadow-2xs flex items-center gap-1"
+              title="Apply custom days to all medicines"
+            >
+              <span>Apply to All</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Full-width Spreadsheet Table matching HealthPlix exact design */}
+      <div className="w-full overflow-x-auto min-h-0 pb-16">
+        <table className="w-full table-fixed text-left text-sm border-collapse border-b border-slate-200">
+          <thead>
+            <tr className="bg-[#eef2f7] text-slate-800 font-bold border-b border-slate-300 text-sm">
+              <th rowSpan={2} style={{ width: '24%' }} className="py-2.5 px-3 border-r border-slate-300/70 align-middle">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-900 font-bold text-sm">Medicine *</span>
+                    {medSaveStatus === 'saved' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 transition">
+                        <Check className="w-2.5 h-2.5" />
+                        Auto-saved
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <SectionTemplatePicker
+                      sectionKey="medicines"
+                      sectionTitle="Medicines"
+                      currentValue={medicines}
+                      category={category || "General Medicine"}
+                      onApplyPreset={(presetMeds) => {
+                        if (Array.isArray(presetMeds) && presetMeds.length > 0) {
+                          onChange(normalizePresetMedicines(presetMeds, prescriptionDate));
+                        }
+                      }}
+                      align="right"
+                    />
+                    <button
+                      type="button"
+                      title="Restore Previous Prescription Medicines"
+                      className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                      onClick={onRestorePreviousMedicines}
+                    >
+                      <Undo2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </th>
+              <th rowSpan={2} style={{ width: '9%' }} className="py-2.5 px-2 border-r border-slate-300/70 align-middle">
+                <div className="flex items-center justify-between cursor-pointer">
+                  <span>Dosage</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                </div>
+              </th>
+              <th colSpan={4} className="py-2 px-3 border-r border-slate-300/70 text-left font-bold text-sm">Timing / Frequency / Duration</th>
+              <th rowSpan={2} style={{ width: '10%' }} className="py-2.5 px-2 border-r border-slate-300/70 align-middle text-center">
+                <span>Qty</span>
+              </th>
+              <th rowSpan={2} style={{ width: '3%' }} className="py-2.5 px-1 align-middle"></th>
+            </tr>
+            <tr className="bg-[#eef2f7] text-slate-700 font-bold border-b border-slate-300 text-xs">
+              <th style={{ width: '18%' }} className="px-2.5 py-1.5 border-r border-slate-300/70 text-left">Timing</th>
+              <th style={{ width: '14%' }} className="px-2.5 py-1.5 border-r border-slate-300/70 text-left">When</th>
+              <th style={{ width: '12%' }} className="px-2.5 py-1.5 border-r border-slate-300/70 text-left">Frequency</th>
+              <th style={{ width: '10%' }} className="px-2.5 py-1.5 border-r border-slate-300/70 text-left relative">
+                <div className="flex items-center justify-between gap-1">
+                  <span>Duration</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowDurationMenu((prev) => !prev)}
+                    className={`px-1.5 py-0.5 text-[10px] rounded font-bold transition flex items-center gap-0.5 cursor-pointer shadow-2xs ${
+                      showDurationMenu
+                        ? 'bg-emerald-700 text-white'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    }`}
+                    title="Apply common duration/days to all medicines"
+                  >
+                    <span>All</span>
+                    <ChevronDown className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+                {showDurationMenu && (
+                  <div
+                    ref={durationMenuRef}
+                    className="absolute right-0 top-full mt-1 w-64 bg-white rounded-lg shadow-2xl border border-slate-300 p-3 z-50 animate-in fade-in zoom-in-95 text-slate-800"
+                  >
+                    <div className="text-[11px] font-bold text-slate-800 mb-2 flex items-center justify-between border-b border-slate-100 pb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                        Common Duration (All Meds)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowDurationMenu(false)}
+                        className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5 mb-2.5">
+                      {['3 days', '5 days', '7 days', '10 days', '15 days', '1 month'].map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => {
+                            handleApplyCommonDuration(d);
+                            setShowDurationMenu(false);
+                          }}
+                          className="px-1.5 py-1 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 border border-slate-200 rounded text-[11px] font-semibold text-slate-700 text-center transition cursor-pointer"
+                        >
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100">
+                      <div className="flex items-center border border-slate-300 rounded overflow-hidden flex-1 focus-within:border-emerald-500">
+                        <input
+                          type="number"
+                          min="1"
+                          max="365"
+                          placeholder="e.g. 5"
+                          value={customCommonDays}
+                          onChange={(e) => setCustomCommonDays(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && customCommonDays) {
+                              e.preventDefault();
+                              handleApplyCommonDuration(customCommonDays);
+                              setCustomCommonDays('');
+                              setShowDurationMenu(false);
+                            }
+                          }}
+                          className="w-full px-2 py-1 text-xs font-semibold text-slate-800 outline-none text-center"
+                        />
+                        <span className="text-[10px] text-slate-400 pr-1.5 select-none">days</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (customCommonDays) {
+                            handleApplyCommonDuration(customCommonDays);
+                            setCustomCommonDays('');
+                            setShowDurationMenu(false);
+                          }
+                        }}
+                        disabled={!customCommonDays}
+                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded text-xs font-bold transition cursor-pointer shadow-2xs whitespace-nowrap"
+                      >
+                        Apply All
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {medicines.map((med, medIndex) => {
+              const schedules = normalizeMedicineSchedules(med);
+
+              return (
+                <React.Fragment key={medIndex}>
+                  {schedules.map((sch, schIndex) => {
+                    const isFirstSchedule = schIndex === 0;
+                    const isLastSchedule = schIndex === schedules.length - 1;
+
+                    return (
+                      <tr
+                        key={`${medIndex}_${schIndex}`}
+                        className="hover:bg-slate-50/80 transition-colors group"
+                      >
+                        {/* 1. Medicine Name & Composition with '+' Button in cell */}
+                        <td style={{ width: '24%' }} className="border-r border-b border-slate-200 px-2.5 py-1.5 align-top relative">
+                          {isFirstSchedule ? (
+                            <div className="flex items-start justify-between gap-1.5 min-h-[34px]">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-slate-900 text-sm leading-snug uppercase tracking-tight truncate" title={med.name}>
+                                  {med.name}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs text-slate-500 leading-snug mt-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingCompositionIndex(medIndex);
+                                      setCompositionDraft(med.composition || '');
+                                    }}
+                                    className="text-slate-400 hover:text-slate-700"
+                                    title="Edit composition/generic"
+                                  >
+                                    <Edit2 className="w-3 h-3 inline" />
+                                  </button>
+                                  {editingCompositionIndex === medIndex ? (
+                                    <input
+                                      type="text"
+                                      value={compositionDraft}
+                                      onChange={(e) => setCompositionDraft(e.target.value)}
+                                      onBlur={() => {
+                                        const updated = [...medicines];
+                                        updated[medIndex].composition = compositionDraft;
+                                        onChange(updated);
+                                        setEditingCompositionIndex(null);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          const updated = [...medicines];
+                                          updated[medIndex].composition = compositionDraft;
+                                          onChange(updated);
+                                          setEditingCompositionIndex(null);
+                                        }
+                                      }}
+                                      autoFocus
+                                      className="px-2 py-0.5 border border-emerald-400 rounded text-xs bg-white outline-none w-full"
+                                    />
+                                  ) : (
+                                    <span className="italic truncate">
+                                      {med.composition || 'Generic name'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* HealthPlix + Button at top-right of Medicine cell */}
+                              {isLastSchedule && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddSchedule(medIndex)}
+                                  className="w-4 h-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded flex items-center justify-center transition shadow-2xs border border-slate-300/80 cursor-pointer shrink-0 mt-0.5"
+                                  title="Add more frequency / schedule line for this medicine"
+                                >
+                                  <Plus className="w-2.5 h-2.5" />
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between min-h-[34px] pl-3 text-xs text-slate-400 italic">
+                              <span>↳ Additional Schedule</span>
+                              {isLastSchedule && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddSchedule(medIndex)}
+                                  className="w-4 h-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded flex items-center justify-center transition shadow-2xs border border-slate-300/80 cursor-pointer"
+                                  title="Add more frequency / schedule line for this medicine"
+                                >
+                                  <Plus className="w-2.5 h-2.5" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 2. Dosage */}
+                        <td style={{ width: '9%' }} className="border-r border-b border-slate-200 p-0 align-top">
+                          <input
+                            type="text"
+                            value={sch.dosage || ''}
+                            onChange={(e) =>
+                              handleUpdateSchedule(medIndex, schIndex, 'dosage', e.target.value)
+                            }
+                            placeholder=""
+                            list={`dosage-list-${medIndex}-${schIndex}`}
+                            className="w-full h-full min-h-[34px] px-2 py-1.5 bg-transparent text-slate-900 text-sm font-bold focus:bg-emerald-50/50 focus:outline-none transition text-center"
+                          />
+                          <datalist id={`dosage-list-${medIndex}-${schIndex}`}>
+                            {DOSAGE_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt} />
+                            ))}
+                          </datalist>
+                        </td>
+
+                        {/* 3. Unit */}
+                        <td className="hidden border-r border-b border-slate-200 p-0 align-top">
+                          <input
+                            type="text"
+                            value={sch.unit || ''}
+                            onChange={(e) =>
+                              handleUpdateSchedule(medIndex, schIndex, 'unit', e.target.value)
+                            }
+                            placeholder=""
+                            list={`unit-list-${medIndex}-${schIndex}`}
+                            className="w-full h-full min-h-[34px] px-2 py-1.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none transition"
+                          />
+                          <datalist id={`unit-list-${medIndex}-${schIndex}`}>
+                            {UNIT_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt} />
+                            ))}
+                          </datalist>
+                        </td>
+
+                        {/* 4. Time */}
+                        <td style={{ width: '18%' }} className="border-r border-b border-slate-200 p-0 align-top">
+                          <input
+                            type="text"
+                            value={sch.time || ''}
+                            onChange={(e) =>
+                              handleUpdateSchedule(medIndex, schIndex, 'time', e.target.value)
+                            }
+                            placeholder=""
+                            list={`time-list-${medIndex}-${schIndex}`}
+                            className="w-full h-full min-h-[34px] px-2 py-1.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none transition"
+                          />
+                          <datalist id={`time-list-${medIndex}-${schIndex}`}>
+                            {TIME_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt} />
+                            ))}
+                          </datalist>
+                        </td>
+
+                        {/* 5. When */}
+                        <td style={{ width: '14%' }} className="border-r border-b border-slate-200 p-0 align-top">
+                          <select
+                            value={sch.when || ''}
+                            onChange={(e) =>
+                              handleUpdateSchedule(medIndex, schIndex, 'when', e.target.value)
+                            }
+                            className="w-full h-full min-h-[34px] px-2 py-1.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none cursor-pointer transition"
+                          >
+                            <option value="">—</option>
+                            {WHEN_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+
+                        {/* 6. Where */}
+                        <td className="hidden border-r border-b border-slate-200 p-0 align-top">
+                          <input
+                            type="text"
+                            value={sch.where || ''}
+                            onChange={(e) =>
+                              handleUpdateSchedule(medIndex, schIndex, 'where', e.target.value)
+                            }
+                            placeholder=""
+                            list={`where-list-${medIndex}-${schIndex}`}
+                            className="w-full h-full min-h-[34px] px-2 py-1.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none transition"
+                          />
+                          <datalist id={`where-list-${medIndex}-${schIndex}`}>
+                            {WHERE_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt} />
+                            ))}
+                          </datalist>
+                        </td>
+
+                        {/* 7. Frequency */}
+                        <td style={{ width: '12%' }} className="border-r border-b border-slate-200 p-0 align-top">
+                          <select
+                            value={sch.frequency || ''}
+                            onChange={(e) =>
+                              handleUpdateSchedule(medIndex, schIndex, 'frequency', e.target.value)
+                            }
+                            className="w-full h-full min-h-[34px] px-2 py-1.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none cursor-pointer transition"
+                          >
+                            <option value="">—</option>
+                            {FREQUENCY_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+
+                        {/* 8. Duration */}
+                        <td style={{ width: '10%' }} className="border-r border-b border-slate-200 p-0 align-top relative group/durcell">
+                          <div className="relative flex items-center h-full min-h-[34px]">
+                            <input
+                              type="text"
+                              value={sch.duration || ''}
+                              onChange={(e) =>
+                                handleUpdateSchedule(medIndex, schIndex, 'duration', e.target.value)
+                              }
+                              placeholder=""
+                              list={`duration-list-${medIndex}-${schIndex}`}
+                              className="w-full h-full min-h-[34px] px-2 py-1.5 pr-7 bg-transparent text-slate-800 text-sm font-semibold focus:bg-emerald-50/50 focus:outline-none transition"
+                            />
+                            {medicines.length > 1 && sch.duration && (
+                              <button
+                                type="button"
+                                onClick={() => handleApplyCommonDuration(sch.duration || '')}
+                                className="absolute right-1 opacity-0 group-hover/durcell:opacity-100 hover:opacity-100 transition-opacity px-1 py-0.5 text-[9px] bg-emerald-100 hover:bg-emerald-600 hover:text-white text-emerald-800 border border-emerald-300 rounded font-bold cursor-pointer shadow-2xs"
+                                title={`Apply "${sch.duration}" to all prescribed medicines`}
+                              >
+                                All
+                              </button>
+                            )}
+                          </div>
+                          <datalist id={`duration-list-${medIndex}-${schIndex}`}>
+                            {DURATION_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt} />
+                            ))}
+                          </datalist>
+                        </td>
+
+                        {/* 9. Start From & To Date (Uniform DD/MM/YYYY) */}
+                        <td className="hidden border-r border-b border-slate-200 p-2 align-top">
+                          <div className="flex flex-col justify-center text-xs leading-normal py-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-slate-400 font-bold text-xs">From:</span>
+                              <input
+                                type="date"
+                                value={sch.start_from || prescriptionDate}
+                                onChange={(e) =>
+                                  handleUpdateSchedule(medIndex, schIndex, 'start_from', e.target.value)
+                                }
+                                className="bg-transparent text-xs font-bold text-slate-900 outline-none cursor-pointer focus:bg-white rounded px-1 py-0.5 border border-transparent hover:border-slate-300"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className="text-slate-400 font-bold text-xs">To:</span>
+                              <span className="text-slate-900 font-bold text-xs px-1">
+                                {formatToDisplayDate(sch.to_date || calculateEndDate(sch.start_from || prescriptionDate, sch.duration)) || '—'}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 10. Details */}
+                        <td className="hidden border-r border-b border-slate-200 p-0 align-top">
+                          <input
+                            type="text"
+                            value={sch.details || ''}
+                            onChange={(e) =>
+                              handleUpdateSchedule(medIndex, schIndex, 'details', e.target.value)
+                            }
+                            placeholder=""
+                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none transition"
+                          />
+                        </td>
+
+                        {/* 11. Notes */}
+                        <td className="hidden border-r border-b border-slate-200 p-0 align-top">
+                          <input
+                            type="text"
+                            value={sch.notes || ''}
+                            onChange={(e) =>
+                              handleUpdateSchedule(medIndex, schIndex, 'notes', e.target.value)
+                            }
+                            placeholder=""
+                            list={`notes-list-${medIndex}-${schIndex}`}
+                            className="w-full h-full min-h-[48px] px-2.5 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none transition"
+                          />
+                          <datalist id={`notes-list-${medIndex}-${schIndex}`}>
+                            {NOTE_PRESETS.map((note) => (
+                              <option key={note} value={note} />
+                            ))}
+                          </datalist>
+                        </td>
+
+                        {/* 12. Qty */}
+                        {isFirstSchedule && (
+                          <td
+                            rowSpan={schedules.length}
+                            style={{ width: '10%' }}
+                            className="border-r border-b border-slate-200 p-0 align-middle text-center"
+                          >
+                            <input
+                              type="number"
+                              min="1"
+                              value={
+                                med.quantity !== undefined && med.quantity !== null
+                                  ? med.quantity
+                                  : (calculateMedicineQuantity(med) ?? '')
+                              }
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                const updated = [...medicines];
+                                updated[medIndex] = {
+                                  ...updated[medIndex],
+                                  quantity: val,
+                                  quantity_manual: true,
+                                };
+                                onChange(updated);
+                              }}
+                              placeholder="—"
+                              className="w-full h-full min-h-[34px] px-1 py-1.5 bg-transparent text-slate-900 text-sm font-bold text-center focus:bg-emerald-50/50 focus:outline-none transition"
+                              title="Prescribed Quantity (auto-calculated from dosage & duration, or manual)"
+                            />
+                          </td>
+                        )}
+
+                        {/* Delete Action */}
+                        <td style={{ width: '3%' }} className="border-b border-slate-200 p-1 text-center align-middle">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSchedule(medIndex, schIndex)}
+                            className="text-slate-300 hover:text-red-600 transition p-1.5 rounded opacity-0 group-hover:opacity-100 cursor-pointer"
+                            title={schedules.length > 1 ? 'Remove this schedule frequency' : 'Delete medicine from prescription'}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+
+            {/* Row: Add Medicine (Matching Row 5 in HealthPlix IMG_0910) */}
+            <tr className="hover:bg-slate-50/50 transition-colors">
+              <td style={{ width: '24%' }} className="border-r border-b border-slate-200 p-1.5 align-middle">
+                <div className="flex items-center gap-1.5 w-full">
+                  <div className="flex-1">
+                    <MedicineSearchInput
+                      value={newMedSearch}
+                      onChangeName={setNewMedSearch}
+                      onSelectMedicine={handleSelectNewMedicine}
+                      options={medicineOptions}
+                      placeholder="Add Medicine"
+                      index={medicines.length}
+                    />
+                  </div>
+                  {newMedSearch && !medicineOptions.some(m => m.name.toLowerCase() === newMedSearch.trim().toLowerCase()) && (
+                    <button
+                      type="button"
+                      onClick={() => handleAddNewCustomMedicine(newMedSearch)}
+                      title={`Add "${newMedSearch}" to prescription`}
+                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition whitespace-nowrap cursor-pointer shadow-2xs"
+                    >
+                      + Add
+                    </button>
+                  )}
+                </div>
+              </td>
+              <td style={{ width: '9%' }} className="border-r border-b border-slate-200 min-h-[34px] p-0"></td>
+              <td className="hidden border-r border-b border-slate-200 min-h-[34px] p-0"></td>
+              <td style={{ width: '18%' }} className="border-r border-b border-slate-200 min-h-[34px] p-0"></td>
+              <td style={{ width: '14%' }} className="border-r border-b border-slate-200 min-h-[34px] p-0"></td>
+              <td className="hidden border-r border-b border-slate-200 min-h-[34px] p-0"></td>
+              <td style={{ width: '12%' }} className="border-r border-b border-slate-200 min-h-[34px] p-0"></td>
+              <td style={{ width: '10%' }} className="border-r border-b border-slate-200 min-h-[34px] p-0"></td>
+              <td className="hidden border-r border-b border-slate-200 min-h-[34px] p-0"></td>
+              <td className="hidden border-r border-b border-slate-200 min-h-[34px] p-0"></td>
+              <td className="hidden border-r border-b border-slate-200 min-h-[34px] p-0"></td>
+              <td style={{ width: '10%' }} className="border-r border-b border-slate-200 min-h-[34px] p-0"></td>
+              <td style={{ width: '3%' }} className="border-b border-slate-200 min-h-[34px] p-0"></td>
+            </tr>
+
+            {/* Blank spreadsheet rows to provide generous height and ample room for suggestions */}
+            {Array.from({ length: Math.max(0, 4 - medicines.length) }).map((_, i) => (
+              <tr key={`blank-row-${i}`} className="h-12 border-b border-slate-100 hover:bg-slate-50/30">
+                <td className="border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="hidden border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="hidden border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="hidden border-r border-slate-200"></td>
+                <td className="hidden border-r border-slate-200"></td>
+                <td className="hidden border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="border-b border-slate-200"></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Template & Action Controls (HealthPlix Style Footer) */}
+      <div className="py-2 px-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs font-medium text-slate-600">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (onRestorePreviousMedicines) {
+                onRestorePreviousMedicines();
+              } else {
+                try {
+                  const lastRx = localStorage.getItem('bhalme_last_prescribed_medicines');
+                  if (lastRx) {
+                    const parsed = JSON.parse(lastRx);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                      onChange(parsed);
+                    }
+                  }
+                } catch {}
+              }
+            }}
+            title="Restore Previous Prescription Medicines"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer font-bold shadow-2xs"
+          >
+            <Undo2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Load Prev (Undo)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              loadSavedMedTemplates();
+              setIsMedicalModalOpen(true);
+            }}
+            title="Load Medical Template (Drug Regimen)"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer font-bold shadow-2xs"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Load template</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (medicines.length === 0) {
+                alert('Please add medicines before saving as medical template.');
+                return;
+              }
+              setNewMedTemplateName('');
+              if (category) setNewMedTemplateCat(category);
+              setIsSaveMedicalModalOpen(true);
+            }}
+            title="Save Current Medicines as Medical Template"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 hover:bg-purple-100 transition cursor-pointer font-bold shadow-2xs"
+          >
+            <BookmarkPlus className="w-3.5 h-3.5 text-purple-600" />
+            <span>Save Medicines as Template</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm('Clear all medicines?')) {
+                onChange([]);
+              }
+            }}
+            title="Clear All Medicines from Prescription"
+            className="flex items-center gap-1 text-slate-400 hover:text-red-600 px-2 py-1 transition cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Clear All</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 1. Medical Template Picker Modal */}
+      {isMedicalModalOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Medical Templates & Regimens</h3>
+                  <p className="text-xs text-slate-500">
+                    Apply standard or saved drug combinations to this prescription table
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMedicalModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-200 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Toast inside modal */}
+            {medToastMessage && (
+              <div className="mx-5 mt-3 p-2 bg-emerald-50 text-emerald-800 text-xs font-semibold rounded-lg border border-emerald-200 flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span>{medToastMessage}</span>
+              </div>
+            )}
+
+            {/* Search and Tabs */}
+            <div className="px-5 pt-3 pb-2 border-b border-slate-100 space-y-2.5">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={medSearchQuery}
+                  onChange={(e) => setMedSearchQuery(e.target.value)}
+                  placeholder="Search medical templates by condition, category, or drug..."
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setMedModalTab('presets')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-md transition text-center ${
+                    medModalTab === 'presets'
+                      ? 'bg-white text-emerald-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Clinical Presets ({(CLINICAL_SECTION_PRESETS['medicines'] || []).length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMedModalTab('saved')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-md transition text-center ${
+                    medModalTab === 'saved'
+                      ? 'bg-white text-purple-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Doctor Saved ({savedMedTemplates.length})
+                </button>
+              </div>
+            </div>
+
+            {/* List Content */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              {medModalTab === 'presets' ? (
+                // Filtered Presets
+                (CLINICAL_SECTION_PRESETS['medicines'] || [])
+                  .filter((p) => {
+                    const q = medSearchQuery.toLowerCase().trim();
+                    if (!q) return true;
+                    return (
+                      p.name.toLowerCase().includes(q) ||
+                      (p.category && p.category.toLowerCase().includes(q)) ||
+                      (p.description && p.description.toLowerCase().includes(q)) ||
+                      (Array.isArray(p.data) &&
+                        p.data.some(
+                          (m: any) =>
+                            m.name?.toLowerCase().includes(q) ||
+                            m.composition?.toLowerCase().includes(q)
+                        ))
+                    );
+                  })
+                  .map((preset) => (
+                    <div
+                      key={preset.id}
+                      className="border border-slate-200 hover:border-emerald-300 rounded-xl p-3.5 bg-white hover:bg-emerald-50/30 transition shadow-xs"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 text-sm">{preset.name}</span>
+                            {preset.category && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                {preset.category}
+                              </span>
+                            )}
+                          </div>
+                          {preset.description && (
+                            <p className="text-xs text-slate-500 mt-0.5">{preset.description}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleApplyMedPreset(preset.data, 'replace')}
+                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs cursor-pointer transition"
+                            title="Replace table with this regimen"
+                          >
+                            Apply Regimen
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleApplyMedPreset(preset.data, 'append')}
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-xs border border-slate-200 cursor-pointer transition"
+                            title="Append these drugs to current list"
+                          >
+                            + Add to Table
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Drug items preview */}
+                      <div className="bg-slate-50 rounded-lg p-2 space-y-1 text-xs">
+                        {Array.isArray(preset.data) &&
+                          preset.data.map((m: any, mIdx: number) => (
+                            <div key={mIdx} className="flex items-center justify-between text-slate-700">
+                              <span className="font-medium text-slate-800">
+                                • {m.name} {m.composition ? `(${m.composition})` : ''}
+                              </span>
+                              <span className="text-slate-500 font-mono text-[11px]">
+                                {m.dosage} | {m.when || m.frequency} | {m.duration}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  ))
+              ) : (
+                // Doctor Saved Templates
+                savedMedTemplates.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400 text-xs">
+                    <p className="font-semibold text-sm text-slate-600 mb-1">No saved medical templates</p>
+                    <p>Click &quot;Save as template&quot; in the medicine table footer to save your favorite combinations.</p>
+                  </div>
+                ) : (
+                  savedMedTemplates
+                    .filter((s) => {
+                      const q = medSearchQuery.toLowerCase().trim();
+                      if (!q) return true;
+                      return s.name.toLowerCase().includes(q);
+                    })
+                    .map((s) => (
+                      <div
+                        key={s.id}
+                        className="border border-purple-200 hover:border-purple-300 rounded-xl p-3.5 bg-white hover:bg-purple-50/20 transition shadow-xs"
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900 text-sm">{s.name}</span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                {s.category || 'Custom'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {Array.isArray(s.data) ? `${s.data.length} medicines` : 'Drug list'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleApplyMedPreset(s.data, 'replace')}
+                              className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs shadow-xs cursor-pointer transition"
+                            >
+                              Apply Regimen
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleApplyMedPreset(s.data, 'append')}
+                              className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-xs border border-slate-200 cursor-pointer transition"
+                            >
+                              + Add
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMedTemplate(s.id, s.name)}
+                              className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer"
+                              title="Delete template"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Drugs preview */}
+                        {Array.isArray(s.data) && (
+                          <div className="bg-purple-50/40 rounded-lg p-2 space-y-1 text-xs">
+                            {s.data.map((m: any, mIdx: number) => (
+                              <div key={mIdx} className="flex items-center justify-between text-slate-700">
+                                <span className="font-medium text-slate-800">• {m.name}</span>
+                                <span className="text-slate-500 font-mono text-[11px]">
+                                  {m.dosage} | {m.frequency || m.when} | {m.duration}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                )
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+              <span className="text-xs text-slate-500">
+                Medical templates strictly apply drugs only and never overwrite clinical notes or vitals.
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsMedicalModalOpen(false)}
+                className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Save Medical Template Modal */}
+      {isSaveMedicalModalOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg flex flex-col overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-purple-50/50">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-purple-100 text-purple-700 rounded-xl">
+                  <BookmarkPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Save as Medical Template</h3>
+                  <p className="text-xs text-slate-500">Save current {medicines.length} medicines as a reusable drug regimen</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSaveMedicalModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-200 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Medical Template Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newMedTemplateName}
+                  onChange={(e) => setNewMedTemplateName(e.target.value)}
+                  placeholder="e.g. Knee OA Meds, Viral Fever Regimen, Spondylosis Regimen..."
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Category / Specialty</label>
+                <select
+                  value={newMedTemplateCat}
+                  onChange={(e) => setNewMedTemplateCat(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 outline-none bg-white cursor-pointer"
+                >
+                  <option value="General Medicine">General Medicine</option>
+                  <option value="Orthopaedics">Orthopaedics</option>
+                  <option value="Gynaecology">Gynaecology</option>
+                  <option value="Dermatology">Dermatology</option>
+                  <option value="Paediatrics">Paediatrics</option>
+                  <option value="Cardiovascular">Cardiovascular</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+
+              {/* Medicines Preview */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Medicines to Save ({medicines.length}):</label>
+                <div className="max-h-40 overflow-y-auto bg-slate-50 border border-slate-200 rounded-lg p-2.5 space-y-1.5 text-xs">
+                  {medicines.map((m, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-slate-800">
+                      <span className="font-semibold text-slate-900">• {m.name}</span>
+                      <span className="text-slate-500 font-mono text-[11px]">{m.dosage} | {m.duration}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsSaveMedicalModalOpen(false)}
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSaveMedTemplate(e);
+                  }}
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition flex items-center gap-1.5"
+                >
+                  <BookmarkPlus className="w-4 h-4" />
+                  <span>Save Medical Template</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

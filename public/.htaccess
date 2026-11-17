@@ -1,0 +1,44 @@
+# Disable content negotiation (MultiViews) so Apache doesn't serve .txt instead of .html
+Options -MultiViews
+DirectoryIndex index.html
+
+# ⚡ INSTANT UPDATES: Never cache HTML or data files so changes appear immediately
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|htm|txt|json)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # Cache versioned static assets (hashed JS, CSS, fonts) efficiently
+  <FilesMatch "\.(woff2?|png|jpe?g|gif|svg|webp|ico)$">
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Ensure directory URLs have a trailing slash
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteCond %{REQUEST_URI} !/$
+  RewriteRule ^(.*)$ $1/ [L,R=301]
+
+  # Serve existing files and directories directly
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # If route has a matching directory with index.html
+  RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f
+  RewriteRule ^(.*)$ $1/index.html [L]
+
+  # Do NOT rewrite missing _next/ assets or static files to index.html (prevent SyntaxError: Unexpected token '<')
+  RewriteCond %{REQUEST_URI} ^/_next/ [OR]
+  RewriteCond %{REQUEST_URI} \.(js|css|json|map|png|jpg|jpeg|gif|ico|svg|woff2?|ttf|eot)$ [NC]
+  RewriteRule ^ - [R=404,L]
+
+  # Fallback to root index.html for client-side routing
+  RewriteRule ^ index.html [L]
+</IfModule>
