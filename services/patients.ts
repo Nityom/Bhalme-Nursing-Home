@@ -27,21 +27,27 @@ export const migratePatientsToCRX = async () => {
 export const getNextPatientReference = async (): Promise<string> => {
     try {
         const next = await convex.query(api.patients.getNextReferenceNumber, {});
-        return next || 'CRX0003';
+        return next || 'BNH0001';
     } catch (e) {
-        return 'CRX0003';
+        return 'BNH0001';
     }
 };
 
-export const createPatient = async (patient: Omit<Patient, 'id' | 'created_at' | 'updated_at' | 'reference_number'>) => {
+export const generateRandomPatientReference = (): string => {
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `BNH${rand}`;
+};
+
+export const createPatient = async (patient: Omit<Patient, 'id' | 'created_at' | 'updated_at' | 'reference_number'> & { reference_number?: string }) => {
     const data = await convex.mutation(api.patients.create, {
         name: patient.name,
         age: String(patient.age),
         sex: patient.sex as "Male" | "Female" | "Other",
-        phone_number: patient.phone_number,
+        phone_number: patient.phone_number || "",
         address: (patient as any).address,
         email: (patient as any).email,
         whatsapp_number: (patient as any).whatsapp_number,
+        reference_number: (patient as any).reference_number,
     });
     return data;
 }

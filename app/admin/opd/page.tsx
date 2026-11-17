@@ -32,7 +32,7 @@ import {
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { hospitalConfig } from "@/config/hospital";
-import { createPatient, getPatients, getPatientByPhoneNumber, getPatientById, getNextPatientReference } from "@/services/patients";
+import { createPatient, getPatients, getPatientByPhoneNumber, getPatientById, getNextPatientReference, generateRandomPatientReference } from "@/services/patients";
 import { Patient } from "@/types/patient";
 import PatientSearchInput from "@/components/PatientSearchInput";
 import { getPrescriptionsByPatient } from "@/services/prescription";
@@ -483,6 +483,21 @@ export default function OPDManagementPage() {
     height: "",
     temperature: "",
   });
+
+  // Quick Add Patient Modal state
+  const [showQuickAddModal, setShowQuickAddModal] = useState(false);
+  const [quickAddData, setQuickAddData] = useState({
+    name: "",
+    phone: "",
+    age: "30",
+    sex: "Male" as "Male" | "Female" | "Other",
+    doctor: DOCTORS[0]?.name || "Dr. Nitin Bhalme",
+    bp: "",
+    pulse: "",
+    weight: "",
+    reference_number: "",
+  });
+  const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
 
   const allAppointments = useQuery(api.appointments.list);
   const convexPatients = useQuery(api.patients.list);
@@ -1074,18 +1089,15 @@ export default function OPDManagementPage() {
       alert("Please enter patient name.");
       return;
     }
-    if (!cleanPhone) {
-      alert("Please enter patient 10-digit mobile number.");
-      return;
-    }
-    if (cleanPhone.length !== 10) {
-      alert(`Mobile number must be exactly 10 digits. You have entered ${cleanPhone.length} digits.`);
+    if (cleanPhone && cleanPhone.length !== 10) {
+      alert(`Mobile number must be 10 digits or left empty. You have entered ${cleanPhone.length} digits.`);
       return;
     }
 
     setSubmitting(true);
     try {
       let uhid = await getNextPatientReference();
+      if (!uhid) uhid = generateRandomPatientReference();
       let patientId: string | undefined;
 
       try {
@@ -1097,29 +1109,32 @@ export default function OPDManagementPage() {
           address: formData.address.trim() || undefined,
           email: formData.email.trim() || undefined,
           whatsapp_number: formData.whatsapp_number.trim() || undefined,
+          reference_number: uhid,
         } as any);
 
         patientId = res ? String(res) : undefined;
         // Check if patient reference exists in database
         if (existingPatientFound?.reference_number) {
-          uhid = existingPatientFound.reference_number.replace(/^CH/i, "CRX");
+          uhid = existingPatientFound.reference_number.replace(/^CH/i, "BNH").replace(/^CRX/i, "BNH");
         } else if (patientId) {
           const pt = await getPatientById(patientId);
           if (pt?.reference_number) {
-            uhid = pt.reference_number.replace(/^CH/i, "CRX");
+            uhid = pt.reference_number.replace(/^CH/i, "BNH").replace(/^CRX/i, "BNH");
           }
         }
         if (!uhid) {
           const pt = await getPatientByPhoneNumber(cleanPhone, formData.name.trim());
           if (pt?.reference_number) {
-            uhid = pt.reference_number.replace(/^CH/i, "CRX");
+            uhid = pt.reference_number.replace(/^CH/i, "BNH").replace(/^CRX/i, "BNH");
           } else {
             uhid = await getNextPatientReference();
+            if (!uhid) uhid = generateRandomPatientReference();
           }
         }
       } catch (convexErr) {
         console.warn("Could not sync with Convex directly, using token:", convexErr);
         uhid = await getNextPatientReference();
+        if (!uhid) uhid = generateRandomPatientReference();
       }
 
       // 2. Next Token number for the day (guaranteed unique sequential)
@@ -1246,11 +1261,8 @@ export default function OPDManagementPage() {
         console.warn("Could not sync new registration to Convex:", err);
       }
 
-      // Notification banner and switch directly to queue without popup/slip prompt
-      setSuccessNotification(`Patient ${newItem.name} registered with Token #${tokenNumber}! Added to OPD Queue.`);
-      // Switch to queue and ensure viewing today
-      setSelectedQueueDate(today);
-      setActiveTab("queue");
+      // Directly open prescription for this newly registered patient!
+      startPrescription(newItem);
 
       // Reset form
       setFormData({
@@ -1555,6 +1567,126 @@ export default function OPDManagementPage() {
     router.push(`/admin/prescription?${params.toString()}`);
   };
 
+  // Open Quick Add Patient modal with auto-assigned/random ID
+  const openQuickAddModal = async () => {
+    let initialRef = generateRandomPatientReference();
+    try {
+      const nextRef = await getNextPatientReference();
+      if (nextRef) initialRef = nextRef;
+    } catch {}
+    setQuickAddData({
+      name: "",
+      phone: "",
+      age: "30",
+      sex: "Male",
+      doctor: DOCTORS[0]?.name || hospitalConfig.doctors[0]?.name || "Dr. Nitin Bhalme",
+      bp: "",
+      pulse: "",
+      weight: "",
+      reference_number: initialRef,
+    });
+    setShowQuickAddModal(true);
+  };
+
+  // Submit Quick Add Patient & directly open prescription
+  const handleQuickAddSubmit = async (e?: React.FormEvent, openPrescriptionDirectly = true) => {
+    if (e) e.preventDefault();
+    if (!quickAddData.name.trim()) {
+      alert("Please enter patient name.");
+      return;
+    }
+
+    setQuickAddSubmitting(true);
+    try {
+      const cleanPhone = quickAddData.phone.replace(/\D/g, "");
+      let uhid = quickAddData.reference_number.trim() || generateRandomPatientReference();
+      let patientId: string | undefined;
+
+      try {
+        const res = await createPatient({
+          name: quickAddData.name.trim(),
+          age: Number(quickAddData.age) || 0,
+          sex: quickAddData.sex,
+          phone_number: cleanPhone,
+          reference_number: uhid,
+        } as any);
+        patientId = res ? String(res) : undefined;
+      } catch (convexErr) {
+        console.warn("Could not create patient in Convex:", convexErr);
+      }
+
+      // 2. Next Token number for the day
+      const today = getTodayString();
+      let freshQueue = queue;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) freshQueue = deduplicateOpdQueue(parsed);
+        }
+      } catch {}
+
+      const targetDocKey = getDoctorKey(quickAddData.doctor);
+      const doctorTodayItems = freshQueue.filter(
+        (q) => getItemLocalDate(q.registeredAt) === today && getDoctorKey(q.doctor) === targetDocKey
+      );
+
+      const existingTokens = doctorTodayItems
+        .map((q) => parseInt(q.token, 10))
+        .filter((n) => !isNaN(n) && n > 0);
+      const nextToken = existingTokens.length > 0 ? Math.max(...existingTokens) + 1 : 1;
+      const tokenNumber = String(nextToken).padStart(2, "0");
+
+      const newItem: OPDQueueItem = {
+        id: `opd_${Date.now()}`,
+        token: tokenNumber,
+        uhid,
+        patientId,
+        name: quickAddData.name.trim(),
+        age: quickAddData.age.trim() || "30",
+        ageUnit: "years",
+        sex: quickAddData.sex,
+        phone: cleanPhone,
+        doctor: quickAddData.doctor,
+        department: DOCTORS[0]?.specialty || "general",
+        priority: "Normal",
+        visitType: "New Registration",
+        status: "Waiting",
+        vitals: {
+          bp: quickAddData.bp.trim() || undefined,
+          pulse: quickAddData.pulse.trim() || undefined,
+          weight: quickAddData.weight.trim() || undefined,
+        },
+        consultationFee: 0,
+        paymentMode: "Free / Exempt",
+        registeredAt: new Date().toISOString(),
+        time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+      };
+
+      const updatedQueue = [newItem, ...queue];
+      saveQueue(updatedQueue);
+
+      try {
+        await upsertOpdQueueMutation(newItem);
+      } catch (err) {
+        console.warn("Could not sync quick registration to Convex:", err);
+      }
+
+      setShowQuickAddModal(false);
+
+      if (openPrescriptionDirectly) {
+        startPrescription(newItem);
+      } else {
+        setSuccessNotification(`Patient ${newItem.name} registered with Token #${tokenNumber}! Added to OPD Queue.`);
+      }
+    } catch (err: any) {
+      console.error("Error quick registering patient:", err);
+      alert("Registration failed: " + (err.message || "Unknown error"));
+    } finally {
+      setQuickAddSubmitting(false);
+    }
+  };
+
   // Launch Hospital Billing pre-filled from OPD (Consultation charge added in Billing)
   const startBilling = async (item: OPDQueueItem) => {
     let prescriptionId = "";
@@ -1763,7 +1895,7 @@ export default function OPDManagementPage() {
             <p className="mt-1 text-base text-slate-500">{activeTab === "waitingQueue" ? "Patients currently in clinic awaiting consultation." : activeTab === "queue" ? `${hospitalConfig.legalName} · Outpatient consultations and live queue.` : activeTab === "billingQueue" ? "Patients move here automatically after their consultation is completed." : activeTab === "appointments" ? "Review arrivals and check scheduled patients into the OPD queue." : activeTab === "register" ? "Create a patient record and add them to today’s consultation queue." : "Find a patient record and continue their care."}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => setActiveTab("register")} className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#176e56] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#155944]">
+            <button onClick={openQuickAddModal} className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#176e56] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#155944]">
               <UserPlus className="h-4 w-4" />New patient
             </button>
             <Link href="/admin/prescription" className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50/50 hover:text-emerald-800">
@@ -2722,8 +2854,8 @@ export default function OPDManagementPage() {
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    Generate Token & Add to Queue
+                    <FileText className="w-4 h-4" />
+                    Register & Open Prescription
                   </>
                 )}
               </button>
@@ -2962,6 +3094,216 @@ export default function OPDManagementPage() {
                 {submitting ? "Assigning Token..." : "Check In & Generate Token"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* QUICK ADD PATIENT MODAL */}
+      {showQuickAddModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">New Patient Registration</h3>
+                  <p className="text-xs text-slate-500">Auto-assigns ID and opens prescription directly</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowQuickAddModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => handleQuickAddSubmit(e, true)} className="py-4 space-y-4">
+              {/* Auto-Assigned Patient ID Banner */}
+              <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-sky-800">Assigned Patient ID (UHID):</span>
+                  <span className="font-mono font-bold text-sm bg-white border border-sky-300 text-sky-900 px-2.5 py-0.5 rounded-lg shadow-2xs">
+                    {quickAddData.reference_number || "Auto"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQuickAddData((prev) => ({ ...prev, reference_number: generateRandomPatientReference() }))}
+                  className="text-xs text-sky-700 hover:text-sky-900 font-semibold underline flex items-center gap-1"
+                  title="Generate another random ID"
+                >
+                  <RefreshCw className="w-3 h-3" /> New ID
+                </button>
+              </div>
+
+              {/* Patient Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Patient Full Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  required
+                  value={quickAddData.name}
+                  onChange={(e) => setQuickAddData({ ...quickAddData, name: e.target.value })}
+                  placeholder="e.g. Ramesh Pawar"
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Mobile Number & Age */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Mobile Number <span className="text-slate-400 font-normal lowercase">(optional)</span>
+                  </label>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={quickAddData.phone}
+                    onChange={(e) => setQuickAddData({ ...quickAddData, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                    placeholder="10-digit mobile"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Age
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    value={quickAddData.age}
+                    onChange={(e) => setQuickAddData({ ...quickAddData, age: e.target.value })}
+                    placeholder="e.g. 30"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Sex Selection */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Gender
+                </label>
+                <div className="flex gap-2">
+                  {(["Male", "Female", "Other"] as const).map((gender) => (
+                    <button
+                      key={gender}
+                      type="button"
+                      onClick={() => setQuickAddData({ ...quickAddData, sex: gender })}
+                      className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border transition ${
+                        quickAddData.sex === gender
+                          ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      {gender}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Doctor */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Doctor
+                </label>
+                <select
+                  value={quickAddData.doctor}
+                  onChange={(e) => setQuickAddData({ ...quickAddData, doctor: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                >
+                  {hospitalConfig.doctors.map((d) => (
+                    <option key={d.id} value={d.name}>
+                      {d.name} ({d.designation})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Vitals (Optional) */}
+              <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/60 space-y-2">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Initial Vitals (Optional)
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[10px] text-slate-500 block">BP (mmHg)</label>
+                    <input
+                      type="text"
+                      value={quickAddData.bp}
+                      onChange={(e) => setQuickAddData({ ...quickAddData, bp: e.target.value })}
+                      placeholder="120/80"
+                      className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 block">Pulse (bpm)</label>
+                    <input
+                      type="text"
+                      value={quickAddData.pulse}
+                      onChange={(e) => setQuickAddData({ ...quickAddData, pulse: e.target.value })}
+                      placeholder="72"
+                      className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 block">Weight (kg)</label>
+                    <input
+                      type="text"
+                      value={quickAddData.weight}
+                      onChange={(e) => setQuickAddData({ ...quickAddData, weight: e.target.value })}
+                      placeholder="65"
+                      className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowQuickAddModal(false);
+                    setActiveTab("register");
+                  }}
+                  className="text-xs text-slate-500 hover:text-emerald-700 underline font-semibold"
+                >
+                  Open Full Registration Form
+                </button>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickAddModal(false)}
+                    className="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={quickAddSubmitting}
+                    className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {quickAddSubmitting ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-3.5 h-3.5" /> Save & Open Prescription
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

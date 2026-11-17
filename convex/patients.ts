@@ -11,67 +11,72 @@ export const create = mutation({
         address: v.optional(v.string()),
         email: v.optional(v.string()),
         whatsapp_number: v.optional(v.string()),
+        reference_number: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         // Check if patient exists with this phone number AND matching name
         const cleanName = args.name.trim().toLowerCase();
-        const candidates = await ctx.db
-            .query("patients")
-            .withIndex("by_phone", (q) => q.eq("phone_number", args.phone_number))
-            .collect();
+        if (args.phone_number && args.phone_number.trim()) {
+            const candidates = await ctx.db
+                .query("patients")
+                .withIndex("by_phone", (q) => q.eq("phone_number", args.phone_number))
+                .collect();
 
-        const existingPatient = candidates.find(
-            (p) => p.name.trim().toLowerCase() === cleanName
-        );
+            const existingPatient = candidates.find(
+                (p) => p.name.trim().toLowerCase() === cleanName
+            );
 
-        if (existingPatient) {
-            const patches: Record<string, any> = {};
-            if (args.email && args.email.trim() && args.email.trim() !== existingPatient.email) {
-                patches.email = args.email.trim();
+            if (existingPatient) {
+                const patches: Record<string, any> = {};
+                if (args.email && args.email.trim() && args.email.trim() !== existingPatient.email) {
+                    patches.email = args.email.trim();
+                }
+                if (args.address && args.address.trim() && !existingPatient.address) {
+                    patches.address = args.address.trim();
+                }
+                if (Object.keys(patches).length > 0) {
+                    await ctx.db.patch(existingPatient._id, patches);
+                }
+                return existingPatient._id;
             }
-            if (args.address && args.address.trim() && !existingPatient.address) {
-                patches.address = args.address.trim();
-            }
-            if (Object.keys(patches).length > 0) {
-                await ctx.db.patch(existingPatient._id, patches);
-            }
-            return existingPatient._id;
         }
 
-        // Use reference_counter to assign the next reference number efficiently without scanning the entire patients table
-        let counter = await ctx.db
-            .query("reference_counter")
-            .withIndex("by_counter_id", (q) => q.eq("counter_id", 1))
-            .first();
-        
-        let nextNumber: number;
-        if (counter && typeof counter.current_number === "number") {
-            nextNumber = counter.current_number + 1;
-            await ctx.db.patch(counter._id, { current_number: nextNumber });
-        } else {
-            // Counter not yet initialized: inspect only the most recent patients to find the highest number
-            const recentPatients = await ctx.db.query("patients").order("desc").take(50);
-            let maxExisting = 2; // Default starting reference
-            for (const p of recentPatients) {
-                if (p.reference_number) {
-                    const match = p.reference_number.match(/\d+/);
-                    if (match) {
-                        const num = parseInt(match[0], 10);
-                        if (num > maxExisting) maxExisting = num;
+        let reference_number = args.reference_number?.trim();
+        if (!reference_number) {
+            // Use reference_counter to assign the next reference number efficiently without scanning the entire patients table
+            let counter = await ctx.db
+                .query("reference_counter")
+                .withIndex("by_counter_id", (q) => q.eq("counter_id", 1))
+                .first();
+            
+            let nextNumber: number;
+            if (counter && typeof counter.current_number === "number") {
+                nextNumber = counter.current_number + 1;
+                await ctx.db.patch(counter._id, { current_number: nextNumber });
+            } else {
+                const recentPatients = await ctx.db.query("patients").order("desc").take(50);
+                let maxExisting = 0;
+                for (const p of recentPatients) {
+                    if (p.reference_number) {
+                        const match = p.reference_number.match(/\d+/);
+                        if (match) {
+                            const num = parseInt(match[0], 10);
+                            if (num > maxExisting) maxExisting = num;
+                        }
                     }
                 }
+                nextNumber = maxExisting + 1;
+                await ctx.db.insert("reference_counter", { counter_id: 1, current_number: nextNumber });
             }
-            nextNumber = maxExisting + 1;
-            await ctx.db.insert("reference_counter", { counter_id: 1, current_number: nextNumber });
+            reference_number = `BNH${String(nextNumber).padStart(4, "0")}`;
         }
-        const reference_number = `CRX${String(nextNumber).padStart(4, "0")}`;  
 
         const newPatientId = await ctx.db.insert("patients", {
             reference_number,
             name: args.name,
             age: args.age,
             sex: args.sex,
-            phone_number: args.phone_number,
+            phone_number: args.phone_number || "",
             address: args.address,
             email: args.email,
             whatsapp_number: args.whatsapp_number,
@@ -84,7 +89,7 @@ export const getNextReferenceNumber = query({
     args: {},
     handler: async (ctx) => {
         const allPatients = await ctx.db.query("patients").collect();
-        let maxExisting = 2; // Base minimum since CRX0001 and CRX0002 already exist
+        let maxExisting = 0;
         for (const p of allPatients) {
             if (p.reference_number) {
                 const match = p.reference_number.match(/\d+/);
@@ -102,7 +107,7 @@ export const getNextReferenceNumber = query({
         if (counter && counter.current_number >= next) {
             next = counter.current_number + 1;
         }
-        return `CRX${String(next).padStart(4, "0")}`;
+        return `BNH${String(next).padStart(4, "0")}`;
     },
 });
 
