@@ -3129,14 +3129,6 @@ export default function OPDManagementPage() {
                     {quickAddData.reference_number || "Auto"}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setQuickAddData((prev) => ({ ...prev, reference_number: generateRandomPatientReference() }))}
-                  className="text-xs text-sky-700 hover:text-sky-900 font-semibold underline flex items-center gap-1"
-                  title="Generate another random ID"
-                >
-                  <RefreshCw className="w-3 h-3" /> New ID
-                </button>
               </div>
 
               {/* Patient Name */}
