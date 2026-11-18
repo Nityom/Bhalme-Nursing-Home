@@ -4,6 +4,6 @@ import { useRouter } from "next/navigation";
 
 export default function AuthRootPage() {
   const router = useRouter();
-  useEffect(() => { router.replace("/auth/login"); }, [router]);
+  useEffect(() => { router.replace("/admin/opd"); }, [router]);
   return null;
 }

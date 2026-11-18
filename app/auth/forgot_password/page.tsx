@@ -1,6 +1,14 @@
-// app/forgot-password/page.tsx
-import ForgotPassword from "@/components/ForgotPassword";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ForgotPasswordPage() {
-  return <ForgotPassword />;
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/admin/opd");
+  }, [router]);
+
+  return null;
 }

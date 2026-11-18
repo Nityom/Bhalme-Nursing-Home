@@ -25,6 +25,9 @@ DirectoryIndex index.html
   RewriteCond %{REQUEST_URI} !/$
   RewriteRule ^(.*)$ $1/ [L,R=301]
 
+  # Redirect legacy /auth routes directly to OPD dashboard
+  RewriteRule ^auth(/.*)?$ /admin/opd/ [R=301,L]
+
   # Serve existing files and directories directly
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d

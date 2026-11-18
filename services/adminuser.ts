@@ -13,7 +13,7 @@ export type AuthUser = {
 export const signOut = async (): Promise<void> => {
   libLogout();
   if (typeof window !== 'undefined') {
-    window.location.href = '/auth/login';
+    window.location.href = '/admin/opd';
   }
 };
 

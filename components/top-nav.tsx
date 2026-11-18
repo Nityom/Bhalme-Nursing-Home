@@ -13,7 +13,6 @@ import {
   CreditCard,
   FileText,
   BookmarkCheck,
-  LogOut,
   Menu,
   X,
   ChevronDown,
@@ -21,7 +20,6 @@ import {
 } from 'lucide-react';
 import { hospitalConfig } from '@/config/hospital';
 import { useIsAdmin } from '@/hooks/use-is-admin';
-import { signOut } from '@/services/adminuser';
 
 interface TopNavItem {
   id: string;
@@ -36,18 +34,16 @@ export function AppTopNav() {
   const { isAdmin } = useIsAdmin();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
-  const [profileInitials, setProfileInitials] = useState('CH');
+  const [userEmail, setUserEmail] = useState('Dr. Nitin Bhalme');
+  const [profileInitials, setProfileInitials] = useState('NB');
 
   useEffect(() => {
     try {
       const raw = typeof window !== 'undefined' ? localStorage.getItem('bhalme_auth_session') : null;
       if (raw) {
         const session = JSON.parse(raw);
-        if (session?.email) {
-          setUserEmail(session.email);
-        }
         if (session?.name) {
+          setUserEmail(session.name);
           setProfileInitials(
             session.name
               .split(/\s+/)
@@ -57,6 +53,7 @@ export function AppTopNav() {
               .toUpperCase()
           );
         } else if (session?.email) {
+          setUserEmail(session.email);
           setProfileInitials(session.email.substring(0, 2).toUpperCase());
         }
       }
@@ -95,15 +92,6 @@ export function AppTopNav() {
       ? [{ id: 'sales-report', title: 'Sales Report', url: '/admin/medicines/sales', icon: TrendingUp }]
       : []),
   ];
-
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      router.push('/auth/login');
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
-  };
 
   const isCurrentActive = (itemUrl: string) => {
     if (pathname === itemUrl || pathname.startsWith(`${itemUrl}/`)) return true;
@@ -151,16 +139,6 @@ export function AppTopNav() {
                 </span>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="px-2.5 py-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition text-xs font-medium flex items-center gap-1.5 cursor-pointer border border-transparent hover:border-rose-200"
-              title="Sign out of Bhalme HMS"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden md:inline">Logout</span>
-            </button>
 
             {/* Mobile Menu Toggle Button */}
             <button
