@@ -1,5 +1,5 @@
 // lib/doctorColors.ts
-// Doctor Branding & Color Schemes for Bhalme Nursing Home
+// Doctor Branding & Color Schemes for Gandhi Hospital
 
 export function isShillpaDoctor(doctorName?: string): boolean {
   return false;
@@ -11,7 +11,7 @@ export function isVipeenDoctor(doctorName?: string): boolean {
 
 export function isBhalmeDoctor(doctorName?: string): boolean {
   if (!doctorName) return true;
-  return /bhalme|nitin/i.test(doctorName);
+  return /bhalme|nitin|gandhi|rajesh/i.test(doctorName);
 }
 
 export function getDoctorBadgeStyle(doctorName?: string) {

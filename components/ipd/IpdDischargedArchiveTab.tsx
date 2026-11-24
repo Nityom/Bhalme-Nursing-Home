@@ -79,9 +79,9 @@ export default function IpdDischargedArchiveTab({
       // 2. Doctor filter
       if (selectedDoctor !== "All") {
         const docLower = (adm.consultantDoctor || "").toLowerCase();
-        if (selectedDoctor === "Dr. Nitin Bhalme") {
+        if (selectedDoctor === "Dr. Rajesh Gandhi") {
           if (!docLower.includes("shilpa") && !docLower.includes("shillpa")) return false;
-        } else if (selectedDoctor === "Dr. Nitin Bhalme") {
+        } else if (selectedDoctor === "Dr. Rajesh Gandhi") {
           if (docLower.includes("shilpa") || docLower.includes("shillpa")) return false;
         }
       }
@@ -157,21 +157,21 @@ export default function IpdDischargedArchiveTab({
             </button>
             <button
               type="button"
-              onClick={() => setSelectedDoctor("Dr. Nitin Bhalme")}
+              onClick={() => setSelectedDoctor("Dr. Rajesh Gandhi")}
               className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${
-                selectedDoctor === "Dr. Nitin Bhalme" ? "bg-emerald-600 text-white font-bold shadow-2xs" : "text-slate-600 hover:text-emerald-700"
+                selectedDoctor === "Dr. Rajesh Gandhi" ? "bg-emerald-600 text-white font-bold shadow-2xs" : "text-slate-600 hover:text-emerald-700"
               }`}
             >
-              Dr. Nitin Bhalme
+              Dr. Rajesh Gandhi
             </button>
             <button
               type="button"
-              onClick={() => setSelectedDoctor("Dr. Nitin Bhalme")}
+              onClick={() => setSelectedDoctor("Dr. Rajesh Gandhi")}
               className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${
-                selectedDoctor === "Dr. Nitin Bhalme" ? "bg-pink-600 text-white font-bold shadow-2xs" : "text-slate-600 hover:text-pink-700"
+                selectedDoctor === "Dr. Rajesh Gandhi" ? "bg-pink-600 text-white font-bold shadow-2xs" : "text-slate-600 hover:text-pink-700"
               }`}
             >
-              Dr. Nitin Bhalme
+              Dr. Rajesh Gandhi
             </button>
           </div>
         </div>

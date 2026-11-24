@@ -47,7 +47,7 @@ function PrintBillContent() {
   const searchParams = useSearchParams();
   const billId = searchParams.get('billId');
   const signatureParam = searchParams.get('signature') || 'sign.png';
-  const doctorNameParam = searchParams.get('doctorName') || 'Dr. Nitin Bhalme';
+  const doctorNameParam = searchParams.get('doctorName') || 'Dr. Rajesh Gandhi';
   const includeSigParam = searchParams.get('includeSignature');
   const includeSignature = includeSigParam !== 'false';
   const [billData, setBillData] = useState<BillData | null>(null);

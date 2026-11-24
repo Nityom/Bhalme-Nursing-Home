@@ -1,5 +1,5 @@
 /**
- * Svasth-HMS / Bhalme Nursing Home — Auth bypassed / default administrator session
+ * Svasth-HMS / Gandhi Hospital — Auth bypassed / default administrator session
  */
 
 export type UserRole = "admin" | "staff";
@@ -15,7 +15,7 @@ export interface AuthUser {
 const DEFAULT_ADMIN: AuthUser = {
   email: "dr.nitin@bhalmenursinghome.com",
   role: "admin",
-  name: "Dr. Nitin Bhalme",
+  name: "Dr. Rajesh Gandhi",
   loginAt: 0,
   expiresAt: Number.MAX_SAFE_INTEGER,
 };

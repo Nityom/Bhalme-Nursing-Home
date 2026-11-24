@@ -179,8 +179,8 @@ export default function AddMedicinePage() {
     return sortDirection === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />;
   };
 
-  const countVipeen = medicines.filter(m => (m.doctor_name || 'Both Doctors') === 'Dr. Nitin Bhalme' || (m.doctor_name || 'Both Doctors') === 'Both Doctors').length;
-  const countShillpa = medicines.filter(m => (m.doctor_name || 'Both Doctors') === 'Dr. Nitin Bhalme' || (m.doctor_name || 'Both Doctors') === 'Both Doctors').length;
+  const countVipeen = medicines.filter(m => (m.doctor_name || 'Both Doctors') === 'Dr. Rajesh Gandhi' || (m.doctor_name || 'Both Doctors') === 'Both Doctors').length;
+  const countShillpa = medicines.filter(m => (m.doctor_name || 'Both Doctors') === 'Dr. Rajesh Gandhi' || (m.doctor_name || 'Both Doctors') === 'Both Doctors').length;
 
   return (
     <div className="min-h-screen bg-white w-full overflow-auto scrollbar-none">
@@ -189,7 +189,7 @@ export default function AddMedicinePage() {
           <header>
             <h1 className="text-3xl font-bold text-gray-800">Medicine Management</h1>
             <p className="text-gray-600 mt-1">
-              Add medicines and compositions to auto-populate prescriptions for Dr. Nitin Bhalme
+              Add medicines and compositions to auto-populate prescriptions for Dr. Rajesh Gandhi
             </p>
           </header>
           <Link
@@ -257,7 +257,7 @@ export default function AddMedicinePage() {
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition text-sm font-medium"
                   >
-                    <option value="Dr. Nitin Bhalme">Dr. Nitin Bhalme</option>
+                    <option value="Dr. Rajesh Gandhi">Dr. Rajesh Gandhi</option>
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
                     Shows in prescription dropdown when this doctor is selected
@@ -474,15 +474,15 @@ export default function AddMedicinePage() {
                                 )}
                               </td>
                               <td className="px-5 py-3.5 whitespace-nowrap">
-                                {docName === 'Dr. Nitin Bhalme' ? (
+                                {docName === 'Dr. Rajesh Gandhi' ? (
                                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-200">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                    Dr. Nitin Bhalme
+                                    Dr. Rajesh Gandhi
                                   </span>
-                                ) : docName === 'Dr. Nitin Bhalme' ? (
+                                ) : docName === 'Dr. Rajesh Gandhi' ? (
                                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-purple-100 text-purple-800 px-2.5 py-0.5 rounded-full border border-purple-200">
                                     <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
-                                    Dr. Nitin Bhalme
+                                    Dr. Rajesh Gandhi
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full">

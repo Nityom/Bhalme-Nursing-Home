@@ -147,11 +147,11 @@ function buildHtmlTemplate(
   svasthLogoBase64?: string,
   bhalmeLogoBase64?: string
 ) {
-  const docName = data.doctorName || (isGynae ? 'Dr. Nitin Bhalme' : 'Dr. Nitin Bhalme');
+  const docName = data.doctorName || (isGynae ? 'Dr. Rajesh Gandhi' : 'Dr. Rajesh Gandhi');
   const v = data.vitals || {};
   const patientRefClean = data.referenceNumber ? data.referenceNumber.replace(/^CH/i, 'CRX') : 'CRX';
 
-  // Obstetrics & Antenatal Record: Strictly rendered ONLY for Dr. Nitin Bhalme (isGynae)
+  // Obstetrics & Antenatal Record: Strictly rendered ONLY for Dr. Rajesh Gandhi (isGynae)
   const hasObstetrics = isGynae && Boolean(v.lmp || v.edd || v.gestational_age);
 
   const obsDetails: string[] = [];
@@ -174,7 +174,7 @@ function buildHtmlTemplate(
   
   <!-- Inbox Snippet Preheader to prevent thread collapse & clipping -->
   <div style="display:none;font-size:1px;color:#f8fafc;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
-    Digital Prescription issued for ${data.patientName} (${patientRefClean}) from Bhalme Nursing Home. Official prescription PDF attached.
+    Digital Prescription issued for ${data.patientName} (${patientRefClean}) from Gandhi Hospital. Official prescription PDF attached.
   </div>
 
   <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
@@ -184,10 +184,10 @@ function buildHtmlTemplate(
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
           <td style="vertical-align: middle;">
-            <img src="${bhalmeLogoSrc}" alt="Bhalme Nursing Home" style="height: 58px; width: auto; max-width: 175px; display: block;" />
+            <img src="${bhalmeLogoSrc}" alt="Gandhi Hospital" style="height: 58px; width: auto; max-width: 175px; display: block;" />
           </td>
           <td style="text-align: right; vertical-align: middle;">
-            <div style="font-size: 14px; font-weight: 800; color: #0f172a; letter-spacing: -0.2px;">BHALME NURSING HOME</div>
+            <div style="font-size: 14px; font-weight: 800; color: #0f172a; letter-spacing: -0.2px;">GANDHI HOSPITAL</div>
             <div style="font-size: 11px; color: #64748b; margin-top: 1px;">Hospital</div>
             <div style="font-size: 10.5px; color: #64748b; margin-top: 1px;">Aarti Chowk, Nagpur Rd, Wardha</div>
             <div style="font-size: 11px; color: #7B1828; font-weight: 700; margin-top: 2px;">Ph: 07152-255795 • 9373280505</div>
@@ -206,7 +206,7 @@ function buildHtmlTemplate(
     <div style="padding: 24px; font-size: 15px; line-height: 1.7; color: #334155;">
       <p style="margin: 0 0 16px 0;">Dear <strong>${data.patientName}</strong>,</p>
 
-      <p style="margin: 0 0 16px 0;">Thank you for visiting Bhalme Nursing Home.</p>
+      <p style="margin: 0 0 16px 0;">Thank you for visiting Gandhi Hospital.</p>
 
       <p style="margin: 0 0 16px 0;">Please find attached your digital prescription issued by <strong>${docName}</strong> following your recent consultation.</p>
 
@@ -218,12 +218,12 @@ function buildHtmlTemplate(
 
       <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
         <p style="margin: 0 0 4px 0; color: #64748b; font-size: 14px;">Warm regards,</p>
-        <p style="margin: 0 0 2px 0; font-weight: 800; color: #0f172a; font-size: 15px;">Bhalme Nursing Home</p>
+        <p style="margin: 0 0 2px 0; font-weight: 800; color: #0f172a; font-size: 15px;">Gandhi Hospital</p>
         <p style="margin: 0 0 4px 0; font-weight: 700; color: #7B1828; font-size: 14px;">${docName}</p>
         <p style="margin: 0; font-weight: 600; color: #0d9488; font-size: 13px;">📞 07152-255795 | 9373280505</p>
       </div>
 
-      <!-- Obstetrics & Antenatal Record (Strictly rendered ONLY for Dr. Nitin Bhalme) -->
+      <!-- Obstetrics & Antenatal Record (Strictly rendered ONLY for Dr. Rajesh Gandhi) -->
       ${hasObstetrics
       ? `
       <div style="margin-top: 22px; padding: 14px 18px; background-color: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 8px; font-size: 13px; color: #831843;">
@@ -262,7 +262,7 @@ function buildHtmlTemplate(
 
     <!-- Clean Footer with Powered by Svaasth-HMS -->
     <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px; text-align: center; color: #94a3b8; font-size: 11px; line-height: 1.6;">
-      <div>Bhalme Nursing Home • Aarti Chowk, Nagpur Road, Wardha - 442001</div>
+      <div>Gandhi Hospital • Aarti Chowk, Nagpur Road, Wardha - 442001</div>
       <div>OPD Timings: Mon-Fri: 10:00 AM - 1:00 PM, 6:00 PM - 8:00 PM | Sunday Closed</div>
       <div style="margin-top: 6px; font-size: 11px; color: #64748b; font-weight: 600;">
         Powered by <strong style="color: #0d9488; font-weight: 800;">Svaasth-HMS</strong>
@@ -371,7 +371,7 @@ async function generatePrescriptionPdf(
   }
 
   // Attending Doctor Details (Right-aligned)
-  const docName = data.doctorName || (isGynae ? 'Dr. Nitin Bhalme' : 'Dr. Nitin Bhalme');
+  const docName = data.doctorName || (isGynae ? 'Dr. Rajesh Gandhi' : 'Dr. Rajesh Gandhi');
   const docTitleW = boldFont.widthOfTextAtSize(docName, 15);
   page.drawText(docName, {
     x: PAGE_W - MARGIN_X - docTitleW,
@@ -511,7 +511,7 @@ async function generatePrescriptionPdf(
   if (v.weight) vList.push(`Weight: ${sanitizePdfText(v.weight)}${!String(v.weight).toLowerCase().includes('kg') ? ' kg' : ''}`);
   if (v.bmi) vList.push(`BMI: ${sanitizePdfText(v.bmi)}`);
 
-  // Include Obstetrics vitals ONLY for Dr. Nitin Bhalme
+  // Include Obstetrics vitals ONLY for Dr. Rajesh Gandhi
   if (isGynae) {
     if (v.lmp) vList.push(`LMP: ${formatDateGB(v.lmp)}`);
     if (v.edd) vList.push(`EDD: ${formatDateGB(v.edd)}`);
@@ -875,7 +875,7 @@ async function generatePrescriptionPdf(
   });
 
   // Hospital Address & Phone
-  const hospAddress = 'Bhalme Nursing Home, Aarti Chowk, Nagpur Road, Wardha - 442001  |  Ph. : 07152-255795, Cell : 9373280505';
+  const hospAddress = 'Gandhi Hospital, Aarti Chowk, Nagpur Road, Wardha - 442001  |  Ph. : 07152-255795, Cell : 9373280505';
   const haW = regularFont.widthOfTextAtSize(hospAddress, 6.8);
   page.drawText(hospAddress, {
     x: (PAGE_W - haW) / 2,
@@ -893,8 +893,8 @@ async function generatePrescriptionPdf(
     color: maroonColor,
   });
 
-  // Footer: Powered by Svaasth HMS • Bhalme Nursing Home EMR with logo
-  const svasthFooter = 'Powered by Svaasth HMS • Bhalme Nursing Home EMR';
+  // Footer: Powered by Svaasth HMS • Gandhi Hospital EMR with logo
+  const svasthFooter = 'Powered by Svaasth HMS • Gandhi Hospital EMR';
   const sfW = regularFont.widthOfTextAtSize(svasthFooter, 7);
   const svasthPdfBytes = (await readPublicFileSafe('Svaasth_logo.png')) || (await readPublicFileSafe('Svasth_logo.png')) || (await readPublicFileSafe('svasth_logo.png'));
   if (svasthPdfBytes) {
@@ -935,20 +935,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Determine Doctor and Sender Email Address
-    const docName = body.doctorName || 'Dr. Nitin Bhalme';
+    const docName = body.doctorName || 'Dr. Rajesh Gandhi';
     const isGynae =
       docName.toLowerCase().includes('shilpa') ||
       docName.toLowerCase().includes('shillpa') ||
       docName.toLowerCase().includes('gynae');
 
-    const doctorEmail = isGynae ? 'drnitinbhalme@gmail.com' : 'drnitinbhalme@gmail.com';
+    const doctorEmail = isGynae ? 'drrajeshgandhi@gmail.com' : 'drrajeshgandhi@gmail.com';
     const doctorTitle = isGynae
       ? 'M.B.B.S., M.D. - Consulting Gynecologist & Obstetrician'
       : 'M.B.B.S., Dip.Ortho., DNB Ortho - Consulting Orthopaedic and Joint Replacement Surgeon';
-    const senderDisplayName = `${docName} (Bhalme Nursing Home)`;
+    const senderDisplayName = `${docName} (Gandhi Hospital)`;
 
     const patientRefClean = body.referenceNumber ? body.referenceNumber.replace(/^CH/i, 'CRX') : 'CRX';
-    const subject = `Prescription: ${body.patientName} (${patientRefClean}) - Bhalme Nursing Home`;
+    const subject = `Prescription: ${body.patientName} (${patientRefClean}) - Gandhi Hospital`;
 
     // 1. Load Optimized Lightweight Logos for Email HTML (Keeps HTML < 50 KB, preventing Gmail [Message clipped])
     const emailBhalmeBuffer = (await readPublicFileSafe('bhalme_logo.svg')) || (await readPublicFileSafe('bhalme_logo.svg'));
@@ -960,14 +960,14 @@ export async function POST(req: NextRequest) {
     const html = buildHtmlTemplate(body, doctorEmail, doctorTitle, isGynae, svasthLogoBase64, bhalmeLogoBase64);
     const text = `Dear ${body.patientName},
 
-Thank you for visiting Bhalme Nursing Home.
+Thank you for visiting Gandhi Hospital.
 Please find attached your digital prescription issued by ${docName} following your recent consultation.
 The attached PDF contains your prescribed medications, dosage instructions, medical advice and follow-up details.
 Please keep this prescription for your records and refer to it when required.
 For any queries or assistance, feel free to contact us.
 
 Warm regards,
-Bhalme Nursing Home
+Gandhi Hospital
 ${docName}
 📞 07152-255795 | 9373280505
 
@@ -1010,7 +1010,7 @@ Powered by Svaasth-HMS (Hospital Management System)`;
         }
 
         if (matchedMailbox?.resourceId) {
-          // Send official prescription PDF and inline CID images for Bhalme Nursing Home and Svaasth logos
+          // Send official prescription PDF and inline CID images for Gandhi Hospital and Svaasth logos
           const attachments: any[] = [
             {
               filename: pdfFilename,

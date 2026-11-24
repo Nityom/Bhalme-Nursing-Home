@@ -61,7 +61,7 @@ export const PrintableExtractionDues: React.FC<PrintableExtractionDuesProps> = (
   termsAndConditions = '1. Post-extraction instructions must be followed strictly for 24-48 hours. 2. Remaining balance must be settled during the follow-up/review appointment.',
   showPrintButton = true,
   signature = 'sign.png',
-  doctorName = 'Dr. Nitin Bhalme',
+  doctorName = 'Dr. Rajesh Gandhi',
   paymentTransactions = [],
   clinicalNotes,
 }) => {

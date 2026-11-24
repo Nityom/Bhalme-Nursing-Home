@@ -104,10 +104,10 @@ export function generateBillDoc(billData: BillData): jsPDF {
 
   doc.setProperties({
     title: `Bill - ${billData.patient.name}`,
-    author: billData.clinic?.name || 'Bhalme Nursing Home',
+    author: billData.clinic?.name || 'Gandhi Hospital',
     subject: 'Hospital Bill',
     keywords: 'hospital, invoice, bill',
-    creator: 'Bhalme Nursing Home Billing System',
+    creator: 'Gandhi Hospital Billing System',
   });
 
   const primaryColor = '#1a56db'; // Blue
@@ -130,7 +130,7 @@ export function generateBillDoc(billData: BillData): jsPDF {
   // Clinic Header
   doc.setTextColor(primaryColor);
   doc.setFontSize(18);
-  centerText('Bhalme Nursing Home', yPos, 18);
+  centerText('Gandhi Hospital', yPos, 18);
   yPos += 7;
 
   doc.setTextColor('#666666');
@@ -148,7 +148,7 @@ export function generateBillDoc(billData: BillData): jsPDF {
   centerText('Maharashtra, India - 442001', yPos, 8);
   yPos += 4;
   centerText(
-    'Phone: +91 9373280505 | Email: drnitinbhalme@gmail.com',
+    'Phone: +91 9373280505 | Email: drrajeshgandhi@gmail.com',
     yPos,
     8
   );
@@ -507,7 +507,7 @@ export function generateBillDoc(billData: BillData): jsPDF {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   centerText(
-    'Thank you for choosing Bhalme Nursing Home for your healthcare needs.',
+    'Thank you for choosing Gandhi Hospital for your healthcare needs.',
     yPos,
     9
   );
@@ -601,7 +601,7 @@ export function convertBillRecordToBillData(
 
   return {
     clinic: {
-      name: 'Bhalme Nursing Home',
+      name: 'Gandhi Hospital',
     },
     patient: {
       name: patientDetails?.name || bill.patient_name || 'Patient',

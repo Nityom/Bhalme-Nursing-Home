@@ -43,10 +43,10 @@ export async function POST(req: NextRequest) {
     const liveSiteBase = process.env.NEXT_PUBLIC_CONVEX_SITE_URL;
     const prescriptionUrl = `${liveSiteBase}/print-prescription?id=${encodeURIComponent(prescriptionId)}`;
 
-    const message = `🏥 *BHALME NURSING HOME, WARDHA*
+    const message = `🏥 *GANDHI HOSPITAL, WARDHA*
 Hello *${patientName || 'Patient'}* 👋
 
-Your digital prescription from *${doctorName || 'Dr. Nitin Bhalme'}* has been generated.
+Your digital prescription from *${doctorName || 'Dr. Rajesh Gandhi'}* has been generated.
 
 📅 *Date:* ${displayDate}
 🩺 *Diagnosis:* ${diagnosis || 'Consultation'}

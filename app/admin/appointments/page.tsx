@@ -77,7 +77,7 @@ export default function AppointmentsPage() {
     sex: 'Male' as 'Male' | 'Female' | 'Other',
     address: '',
     time: '11:00',
-    doctor_name: 'Dr. Nitin Bhalme',
+    doctor_name: 'Dr. Rajesh Gandhi',
     duration_minutes: 30,
     dental_problem: '',
     notes: '',
@@ -189,7 +189,7 @@ export default function AppointmentsPage() {
             name: 'samiksha varnerkar',
             phone: '9665651439',
             age: 21,
-            doctor_name: 'Dr. Nitin Bhalme',
+            doctor_name: 'Dr. Rajesh Gandhi',
             address: 'waigao',
           };
         }
@@ -291,7 +291,7 @@ export default function AppointmentsPage() {
    * Calculates appointment time starting from current computer system time,
    * automatically exceeding/advancing minute-by-minute if a slot is already taken.
    */
-  const getNextAvailableTime = useCallback((dateStr: string, doctorName: string = 'Dr. Nitin Bhalme', preferredTime?: string): string => {
+  const getNextAvailableTime = useCallback((dateStr: string, doctorName: string = 'Dr. Rajesh Gandhi', preferredTime?: string): string => {
     const now = new Date();
     // Default base time is the current computer system time
     let baseMinutes = now.getHours() * 60 + now.getMinutes();
@@ -373,14 +373,14 @@ export default function AppointmentsPage() {
         sex: isGyn ? 'Female' : ((appt as any).sex || 'Male'),
         address: (appt as any).address || '',
         time: normalizeAppointmentTime(appt.time),
-        doctor_name: appt.doctor_name || 'Dr. Nitin Bhalme',
+        doctor_name: appt.doctor_name || 'Dr. Rajesh Gandhi',
         duration_minutes: appt.duration_minutes || 30,
         dental_problem: appt.dental_problem || '',
         notes: appt.notes || '',
       });
     } else {
       setEditingId(null);
-      const defaultDoctor = selectedDoctorFilter !== 'ALL' ? selectedDoctorFilter : 'Dr. Nitin Bhalme';
+      const defaultDoctor = selectedDoctorFilter !== 'ALL' ? selectedDoctorFilter : 'Dr. Rajesh Gandhi';
       const defaultTime = getNextAvailableTime(selectedDate, defaultDoctor);
       const isGyn = isShillpaDoctor(defaultDoctor);
       setFormData({
@@ -478,7 +478,7 @@ export default function AppointmentsPage() {
 
         // DIRECTLY ADD IN WAITING (NO NEED TO CHECK IN IN OPD)
         try {
-          const docName = formData.doctor_name || hospitalConfig.doctors[0]?.name || 'Dr. Nitin Bhalme';
+          const docName = formData.doctor_name || hospitalConfig.doctors[0]?.name || 'Dr. Rajesh Gandhi';
           const dept = docName.toLowerCase().includes('shillpa')
             ? 'Obstetrics & Gynaecology'
             : 'Orthopaedics & Joint Replacement';

@@ -39,7 +39,7 @@ function buildOtpEmailHtml(otpCode: string, deliveryEmail: string, validityLabel
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>Bhalme Nursing Home Admin OTP</title>
+  <title>Gandhi Hospital Admin OTP</title>
 </head>
 <body style="margin:0;padding:40px 20px;background:#e8f4fd;font-family:Arial,sans-serif;">
 
@@ -51,7 +51,7 @@ function buildOtpEmailHtml(otpCode: string, deliveryEmail: string, validityLabel
       <div style="display:inline-block;background:#ffffff;border-radius:14px;padding:12px 20px;margin:0 0 16px;">
         <img
           src="${logoSrc}"
-          alt="Bhalme Nursing Home"
+          alt="Gandhi Hospital"
           width="130"
           height="auto"
           style="display:block;max-width:130px;height:auto;"
@@ -61,7 +61,7 @@ function buildOtpEmailHtml(otpCode: string, deliveryEmail: string, validityLabel
         Secure Access
       </p>
       <p style="margin:0 0 8px;font-size:12px;color:rgba(255,255,255,0.62);letter-spacing:0.1em;text-transform:uppercase;font-weight:500;">
-        Bhalme Nursing Home
+        Gandhi Hospital
       </p>
       <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.6);letter-spacing:0.1em;text-transform:uppercase;font-weight:500;">
         ${portalLabel} Portal - Secure Login
@@ -77,7 +77,7 @@ function buildOtpEmailHtml(otpCode: string, deliveryEmail: string, validityLabel
       </h2>
 
       <p style="margin:0 0 28px;font-size:14.5px;color:#4a6070;line-height:1.7;">
-        Someone (hopefully you) requested access to the Bhalme Nursing Home ${portalLabel.toLowerCase()} dashboard.
+        Someone (hopefully you) requested access to the Gandhi Hospital ${portalLabel.toLowerCase()} dashboard.
         Use the code below to complete your sign-in.
         <strong>Do not share this code with anyone.</strong>
       </p>
@@ -94,7 +94,7 @@ function buildOtpEmailHtml(otpCode: string, deliveryEmail: string, validityLabel
 
       <div style="background:#fff8f0;border:1px solid rgba(255,150,50,0.2);border-left:3px solid #f0933a;border-radius:10px;padding:14px 18px;margin-bottom:28px;">
         <p style="margin:0;font-size:13px;color:#8a5a2a;line-height:1.6;">
-          <strong>Never share this OTP.</strong> Bhalme Nursing Home staff will never ask you for this code.
+          <strong>Never share this OTP.</strong> Gandhi Hospital staff will never ask you for this code.
           If you did not request this, please ignore this email - your account remains secure.
         </p>
       </div>
@@ -110,7 +110,7 @@ function buildOtpEmailHtml(otpCode: string, deliveryEmail: string, validityLabel
     <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(90deg,#f7fbff,#f0f7ff);border-top:1px solid rgba(0,119,182,0.08);">
       <tr>
         <td style="padding:18px 48px;font-size:11.5px;color:#afc5d9;">Developed by Nityom Tikhe</td>
-        <td style="padding:18px 48px;font-size:11.5px;color:#afc5d9;text-align:right;">© 2026 Bhalme Nursing Home</td>
+        <td style="padding:18px 48px;font-size:11.5px;color:#afc5d9;text-align:right;">© 2026 Gandhi Hospital</td>
       </tr>
     </table>
 
@@ -227,7 +227,7 @@ export async function issueLoginOtp(user: AuthUser) {
 
   await sendAuthEmail({
     to: deliveryEmail,
-    subject: `Bhalme Nursing Home ${portalLabel} Login OTP`,
+    subject: `Gandhi Hospital ${portalLabel} Login OTP`,
     text: `Your 4-digit OTP is ${otp}. It is valid for ${otpValidityMinutes} minutes.`,
     html: buildOtpEmailHtml(otp, deliveryEmail, `${otpValidityMinutes} minutes`, portalLabel),
   });
@@ -278,7 +278,7 @@ export async function issuePasswordReset(email: string) {
 
   await sendAuthEmail({
     to: deliveryEmail,
-    subject: "Reset your Bhalme Nursing Home password",
+    subject: "Reset your Gandhi Hospital password",
     text: `Reset your password using this link: ${resetLink}. This link expires in 30 minutes.`,
     html: `
       <div style="font-family: Arial, sans-serif; color: #0f172a;">

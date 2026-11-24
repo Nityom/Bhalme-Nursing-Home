@@ -103,7 +103,7 @@ export default function TemplatesManagementPage() {
     useState<PrescriptionTemplate | null>(null);
   const [formName, setFormName] = useState('');
   const [formCategory, setFormCategory] = useState('Orthopaedics');
-  const [formDoctorName, setFormDoctorName] = useState('Dr. Nitin Bhalme');
+  const [formDoctorName, setFormDoctorName] = useState('Dr. Rajesh Gandhi');
   const [formDiagnosis, setFormDiagnosis] = useState('');
   const [formAdvice, setFormAdvice] = useState('');
   const [formDrNotes, setFormDrNotes] = useState('');
@@ -266,7 +266,7 @@ export default function TemplatesManagementPage() {
     setEditingPrescriptionTemplate(null);
     setFormName('');
     setFormCategory('Orthopaedics');
-    setFormDoctorName('Dr. Nitin Bhalme');
+    setFormDoctorName('Dr. Rajesh Gandhi');
     setFormDiagnosis('');
     setFormAdvice('');
     setFormDrNotes('');
@@ -295,7 +295,7 @@ export default function TemplatesManagementPage() {
     setEditingPrescriptionTemplate(t);
     setFormName(t.name);
     setFormCategory(t.category || 'Orthopaedics');
-    setFormDoctorName(t.doctor_name || 'Dr. Nitin Bhalme');
+    setFormDoctorName(t.doctor_name || 'Dr. Rajesh Gandhi');
     setFormDiagnosis(t.diagnosis || '');
     setFormAdvice(t.advice || '');
     setFormDrNotes(t.dr_notes || '');

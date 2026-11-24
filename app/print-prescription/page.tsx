@@ -132,7 +132,7 @@ function PrintPrescriptionContent() {
   const searchParams = useSearchParams();
   const prescriptionId = searchParams.get('prescriptionId') || searchParams.get('id');
   const signatureParam = searchParams.get('signature') || 'sign.png';
-  const doctorNameParam = searchParams.get('doctorName') || 'Dr. Nitin Bhalme';
+  const doctorNameParam = searchParams.get('doctorName') || 'Dr. Rajesh Gandhi';
   const includeSigParam = searchParams.get('includeSignature');
   const headerFooterParam = searchParams.get('headerFooter');
 
@@ -823,7 +823,7 @@ function PrintPrescriptionContent() {
             />
           )}
           <div className="sig-doc-name">
-            {resolvedDoctorName || 'Dr Nitin Bhalme'}
+            {resolvedDoctorName || 'Dr Rajesh Gandhi'}
           </div>
         </div>
       </div>

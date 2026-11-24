@@ -83,7 +83,7 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [animateItems, setAnimateItems] = useState<boolean>(false);
-  const [userEmail, setUserEmail] = useState<string>("Dr. Nitin Bhalme");
+  const [userEmail, setUserEmail] = useState<string>("Dr. Rajesh Gandhi");
   const [userRole, setUserRole] = useState<string>("admin");
   const { isAdmin } = useIsAdmin();
 

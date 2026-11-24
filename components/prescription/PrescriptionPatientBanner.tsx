@@ -106,7 +106,7 @@ export default function PrescriptionPatientBanner({
             Attending:
           </span>
           <div className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 bg-sky-600 text-white shadow-xs">
-            <span>Dr. Nitin Bhalme</span>
+            <span>Dr. Rajesh Gandhi</span>
           </div>
         </div>
       </div>

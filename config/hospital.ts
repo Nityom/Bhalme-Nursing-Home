@@ -83,9 +83,9 @@ export interface HospitalConfig {
 }
 
 export const hospitalConfig: HospitalConfig = {
-  id: "bhalme-nursing-home",
-  name: "Bhalme Nursing Home",
-  legalName: "Bhalme Nursing Home",
+  id: "gandhi-hospital",
+  name: "Gandhi Hospital",
+  legalName: "Gandhi Hospital",
   tagline: "Nursing Home & Healthcare Center",
   address: {
     line1: "Near Main Market",
@@ -93,13 +93,13 @@ export const hospitalConfig: HospitalConfig = {
     city: "Wardha",
     state: "Maharashtra",
     pincode: "442001",
-    fullFormatted: "Bhalme Nursing Home, Station Road, Wardha - 442001",
+    fullFormatted: "Gandhi Hospital, Station Road, Wardha - 442001",
   },
   contacts: {
     phones: ["9822000000"],
     mobile: "9822000000",
     whatsapp: "919822000000",
-    email: "bhalmenursinghome@gmail.com",
+    email: "gandhihospital@gmail.com",
   },
   schedule: {
     opdTimings: "Mon. to Sat. - 10 am to 2 pm & 6 pm to 9 pm | Sunday Closed",
@@ -117,13 +117,13 @@ export const hospitalConfig: HospitalConfig = {
   },
   doctors: [
     {
-      id: "dr-nitin-bhalme",
-      name: "Dr. Nitin Bhalme",
+      id: "dr-rajesh-gandhi",
+      name: "Dr. Rajesh Gandhi",
       degrees: "M.B.B.S., M.D. (Medicine)",
-      registrationNumber: "MMC/2026/BHALME",
+      registrationNumber: "MMC/2026/GANDHI",
       designation: "Consulting Physician & Surgeon",
       specialty: "general",
-      email: "drnitinbhalme@gmail.com",
+      email: "drrajeshgandhi@gmail.com",
       signatureUrl: "",
       consultationFee: {
         firstVisit: 300,

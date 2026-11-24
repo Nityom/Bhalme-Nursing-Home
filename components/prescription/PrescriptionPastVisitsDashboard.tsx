@@ -95,7 +95,7 @@ export default function PrescriptionPastVisitsDashboard({
   onCreateNewVisit,
   onEditPastVisit,
   onCloseDashboard,
-  selectedDoctorName = 'Dr. Nitin Bhalme',
+  selectedDoctorName = 'Dr. Rajesh Gandhi',
   handleDoctorSelect,
   availableDoctors = [],
   onOpenEmailModal,

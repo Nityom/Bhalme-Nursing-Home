@@ -20,7 +20,7 @@
   </g>
 
   <!-- Hospital Name Text -->
-  <text x="130" y="52" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="28" letter-spacing="0.5"><tspan font-weight="900" fill="#0f172a">BHALME </tspan><tspan font-weight="700" fill="#0284c7">NURSING HOME</tspan></text>
+  <text x="130" y="52" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="28" letter-spacing="0.5"><tspan font-weight="900" fill="#0f172a">GANDHI </tspan><tspan font-weight="700" fill="#0284c7">HOSPITAL</tspan></text>
 
   <!-- Tagline / Subtitle -->
   <text x="132" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#64748b" letter-spacing="1.5">

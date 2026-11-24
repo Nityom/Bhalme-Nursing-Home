@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
     // Create bill data object
     const billData: BillData = {
       clinic: {
-        name: 'Bhalme Nursing Home',
+        name: 'Gandhi Hospital',
       },
       patient: {
         name: patientDetails.name,
@@ -288,7 +288,7 @@ function generatePDF(doc: jsPDF, billData: BillData): void {
   // Add clinic header
   doc.setTextColor(primaryColor);
   doc.setFontSize(18);
-  centerText('Bhalme Nursing Home', yPos, 18);
+  centerText('Gandhi Hospital', yPos, 18);
   yPos += 7;
 
   doc.setTextColor('#666666');
@@ -301,7 +301,7 @@ function generatePDF(doc: jsPDF, billData: BillData): void {
   yPos += 4;
   centerText('Maharashtra, India - 442001', yPos, 8);
   yPos += 4;
-  centerText('Phone: +91 9373280505 | Email: drnitinbhalme@gmail.com', yPos, 8);
+  centerText('Phone: +91 9373280505 | Email: drrajeshgandhi@gmail.com', yPos, 8);
   yPos += 8;
 
   // Add invoice header
@@ -679,7 +679,7 @@ function generatePDF(doc: jsPDF, billData: BillData): void {
   doc.setTextColor('#666666');
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  centerText('Thank you for choosing Bhalme Nursing Home for your healthcare needs.', yPos, 9);
+  centerText('Thank you for choosing Gandhi Hospital for your healthcare needs.', yPos, 9);
   yPos += 5;
   centerText('We wish you a speedy recovery and the best of health.', yPos, 9);
   yPos += 5;

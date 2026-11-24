@@ -71,7 +71,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
   termsAndConditions = 'All disputes are subject to Wardha jurisdiction only',
   showPrintButton = true,
   signature = 'sign.png',
-  doctorName = 'Dr. Nitin Bhalme',
+  doctorName = 'Dr. Rajesh Gandhi',
   paymentTransactions = [],
   referenceNumber,
   prescriptionId,
@@ -550,7 +550,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
                 <h1 className="font-extrabold text-[12px] uppercase tracking-wide text-gray-900 leading-tight">
                   {hospitalConfig.name}
                 </h1>
-                <p className="text-[8px] font-semibold text-emerald-800">Bhalme Nursing Home</p>
+                <p className="text-[8px] font-semibold text-emerald-800">Gandhi Hospital</p>
               </div>
             </div>
             <p className="text-[8.5px] text-gray-700 leading-tight mt-1">
@@ -980,7 +980,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
             />
             <div>
               <h1 className="text-base sm:text-lg font-black tracking-tight uppercase text-black leading-tight">
-                {hospitalConfig.legalName || 'BHALME NURSING HOME'}
+                {hospitalConfig.legalName || 'GANDHI HOSPITAL'}
               </h1>
               <p className="text-xs text-gray-800 leading-tight">
                 {hospitalConfig.address.fullFormatted || 'Nagpur Road Wardha'}
@@ -1053,7 +1053,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
               </div>
               <div className="flex">
                 <span className="w-32 font-semibold text-gray-800 shrink-0">Consultant :</span>
-                <span className="font-bold uppercase text-black">{doctorName || 'Dr. Nitin Bhalme'}</span>
+                <span className="font-bold uppercase text-black">{doctorName || 'Dr. Rajesh Gandhi'}</span>
               </div>
               <div className="flex">
                 <span className="w-32 font-semibold text-gray-800 shrink-0">Payment Category :</span>

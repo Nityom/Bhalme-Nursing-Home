@@ -61,9 +61,9 @@ export default function PrescriptionEmailModal({
 
   if (!isOpen || !data) return null;
 
-  const doctorName = data.doctorName || 'Dr. Nitin Bhalme';
+  const doctorName = data.doctorName || 'Dr. Rajesh Gandhi';
   const isGynae = doctorName.toLowerCase().includes('shilpa') || doctorName.toLowerCase().includes('shillpa') || doctorName.toLowerCase().includes('gynae');
-  const senderEmail = isGynae ? 'drnitinbhalme@gmail.com' : 'drnitinbhalme@gmail.com';
+  const senderEmail = isGynae ? 'drrajeshgandhi@gmail.com' : 'drrajeshgandhi@gmail.com';
 
   const handleSendEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,7 +196,7 @@ export default function PrescriptionEmailModal({
 
           {/* Email Features Summary Badges */}
           <div className="space-y-1.5 pt-1">
-            {/* Obstetrics & Antenatal Record badge for Dr. Nitin Bhalme */}
+            {/* Obstetrics & Antenatal Record badge for Dr. Rajesh Gandhi */}
             {isGynae && (data.vitals?.lmp || data.vitals?.edd || data.vitals?.gestational_age) && (
               <div className="flex items-center gap-2 p-2 bg-pink-50 border border-pink-200 rounded-lg text-xs text-pink-900">
                 <span className="text-pink-600 font-bold shrink-0">🌸 Antenatal:</span>

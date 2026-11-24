@@ -46,7 +46,7 @@ function StatementContent() {
   const searchParams = useSearchParams();
   const billIdsParam = searchParams.get('billIds') || '';
   const signatureParam = searchParams.get('signature') || 'sign.png';
-  const doctorNameParam = searchParams.get('doctorName') || 'Dr. Nitin Bhalme';
+  const doctorNameParam = searchParams.get('doctorName') || 'Dr. Rajesh Gandhi';
   const [bills, setBills] = useState<BillData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

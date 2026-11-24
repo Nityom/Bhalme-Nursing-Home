@@ -245,7 +245,7 @@ function DischargeSheetContent() {
   }, [admission]);
 
   const doctorIsGynae = /shillpa|shilpa|gyn/i.test(admission?.consultantDoctor || '');
-  const doctorName = admission?.consultantDoctor || (doctorIsGynae ? 'Dr. Nitin Bhalme' : 'Dr. Nitin Bhalme');
+  const doctorName = admission?.consultantDoctor || (doctorIsGynae ? 'Dr. Rajesh Gandhi' : 'Dr. Rajesh Gandhi');
   const doctorSigUrl = doctorIsGynae ? '/sign1.png' : '/sign.png';
 
   if (loading) {
@@ -637,7 +637,7 @@ function DischargeSheetContent() {
             {/* Official Hospital Discharge Document Footer */}
             <div className="discharge-footer">
               <div className="discharge-footer-contact">
-                <strong>BHALME NURSING HOME</strong> • Beside Urich Mall, Aarti Square, Nagpur Road, Wardha (M.S) - 442001 • Mobile: +91 9373280505
+                <strong>GANDHI HOSPITAL</strong> • Beside Urich Mall, Aarti Square, Nagpur Road, Wardha (M.S) - 442001 • Mobile: +91 9373280505
               </div>
               <div className="discharge-footer-disclaimer">
                 This Inpatient Discharge Summary &amp; Clinical Report is a confidential medical record. Please bring this summary during follow-up visits.
@@ -661,7 +661,7 @@ function DischargeSheetContent() {
               {/* Top Meta Row */}
               <div className="top-meta-row">
                 <span>{new Date().toLocaleString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                <span className="font-bold tracking-wider">BHALME NURSING HOME • INPATIENT CLINICAL CASE SHEET &amp; STAY LOG</span>
+                <span className="font-bold tracking-wider">GANDHI HOSPITAL • INPATIENT CLINICAL CASE SHEET &amp; STAY LOG</span>
                 <span>PAGE 2 (ANNEXURE)</span>
               </div>
 
@@ -965,7 +965,7 @@ function DischargeSheetContent() {
               {/* Official Hospital Discharge Document Footer */}
               <div className="discharge-footer">
                 <div className="discharge-footer-contact">
-                  <strong>BHALME NURSING HOME</strong> • Beside Urich Mall, Aarti Square, Nagpur Road, Wardha (M.S) - 442001 • Mobile: +91 9373280505
+                  <strong>GANDHI HOSPITAL</strong> • Beside Urich Mall, Aarti Square, Nagpur Road, Wardha (M.S) - 442001 • Mobile: +91 9373280505
                 </div>
                 <div className="discharge-footer-disclaimer">
                   Confidential Patient Clinical Stay Record • Inpatient Medical Records

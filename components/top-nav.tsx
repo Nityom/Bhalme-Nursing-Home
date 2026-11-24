@@ -34,7 +34,7 @@ export function AppTopNav() {
   const { isAdmin } = useIsAdmin();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userEmail, setUserEmail] = useState('Dr. Nitin Bhalme');
+  const [userEmail, setUserEmail] = useState('Dr. Rajesh Gandhi');
   const [profileInitials, setProfileInitials] = useState('NB');
 
   useEffect(() => {

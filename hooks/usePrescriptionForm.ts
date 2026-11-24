@@ -271,7 +271,7 @@ export function usePrescriptionForm() {
         if (savedDoc) return savedDoc;
       } catch {}
     }
-    return 'Dr. Nitin Bhalme';
+    return 'Dr. Rajesh Gandhi';
   });
   const [availableDoctors, setAvailableDoctors] = useState<Doctor[]>([]);
   const [includeSignature, setIncludeSignature] = useState(true);
@@ -285,7 +285,7 @@ export function usePrescriptionForm() {
     if (typeof window !== 'undefined') {
       try {
         const p = new URLSearchParams(window.location.search);
-        const qDoc = p.get('doctorName') || p.get('doctor') || p.get('doc') || localStorage.getItem('bhalme_active_doctor') || 'Dr. Nitin Bhalme';
+        const qDoc = p.get('doctorName') || p.get('doctor') || p.get('doc') || localStorage.getItem('bhalme_active_doctor') || 'Dr. Rajesh Gandhi';
         const isGynae = qDoc.toLowerCase().includes('shilpa') || qDoc.toLowerCase().includes('shillpa');
         return isGynae ? 200 : 400;
       } catch {}
@@ -1039,10 +1039,10 @@ export function usePrescriptionForm() {
   const filteredMedicineOptions = useMemo(() => {
     return medicineOptions.filter((med) => {
       const doc = med.doctor_name || 'Both Doctors';
-      if (selectedDoctorName === 'Dr. Nitin Bhalme') {
-        return doc === 'Dr. Nitin Bhalme' || doc === 'Both Doctors';
-      } else if (selectedDoctorName === 'Dr. Nitin Bhalme') {
-        return doc === 'Dr. Nitin Bhalme' || doc === 'Both Doctors';
+      if (selectedDoctorName === 'Dr. Rajesh Gandhi') {
+        return doc === 'Dr. Rajesh Gandhi' || doc === 'Both Doctors';
+      } else if (selectedDoctorName === 'Dr. Rajesh Gandhi') {
+        return doc === 'Dr. Rajesh Gandhi' || doc === 'Both Doctors';
       }
       return true;
     });
@@ -1821,7 +1821,7 @@ export function usePrescriptionForm() {
         })),
         advice: allAdvice || undefined,
         followup_date: formData.followupDate || undefined,
-        doctor_name: selectedDoctorName || 'Dr. Nitin Bhalme',
+        doctor_name: selectedDoctorName || 'Dr. Rajesh Gandhi',
         opd_visit_id: opdVisitId || undefined,
         vitals: {
           bp: bpFull,
@@ -1857,7 +1857,7 @@ export function usePrescriptionForm() {
           phoneNumber: formData.phoneNumber,
           patientName: formData.patientName,
           prescriptionId: savedPrescription.id,
-          doctorName: selectedDoctorName || 'Dr. Nitin Bhalme',
+          doctorName: selectedDoctorName || 'Dr. Rajesh Gandhi',
           date: formData.date,
           diagnosis: allDiagnoses,
         }).catch((err) => console.warn('Could not send prescription WhatsApp link:', err));
@@ -2136,7 +2136,7 @@ export function usePrescriptionForm() {
     const docObj = availableDoctors.find(
       (d) => d.name.toLowerCase() === (selectedDoctorName || '').toLowerCase()
     );
-    const docName = docObj?.name || selectedDoctorName || 'Dr. Nitin Bhalme';
+    const docName = docObj?.name || selectedDoctorName || 'Dr. Rajesh Gandhi';
 
     const allComplaints = complaintsList.length > 0
       ? complaintsList.map((c) => c.complaint).filter(Boolean).join(', ')

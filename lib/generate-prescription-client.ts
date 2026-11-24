@@ -180,7 +180,7 @@ export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promi
   let y = PAGE_H - 40;
 
   // Header
-  const clinicName = 'BHALME NURSING HOME';
+  const clinicName = 'GANDHI HOSPITAL';
   const clinicNameW = boldFont.widthOfTextAtSize(clinicName, 18);
   page.drawText(clinicName, {
     x: (PAGE_W - clinicNameW) / 2, y,
@@ -209,7 +209,7 @@ export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promi
   const infoRows: [string, string, string, string][] = [
     ['Patient Name', data.patientName || '—', 'UHID / Number', data.referenceNumber || '—'],
     ['Age', data.age || '—', 'Date', formatDate(data.date)],
-    ['Sex', data.sex || '—', 'Doctor', data.doctorName || 'Dr. Nitin Bhalme'],
+    ['Sex', data.sex || '—', 'Doctor', data.doctorName || 'Dr. Rajesh Gandhi'],
   ];
   if (data.followupDate) {
     infoRows.push(['Visit Type', 'Consultation', 'Follow-up', formatDate(data.followupDate)]);

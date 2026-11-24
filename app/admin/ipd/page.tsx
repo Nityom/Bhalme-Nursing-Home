@@ -563,7 +563,7 @@ export default function IPDManagementPage() {
       const dateKey = normalizeAppointmentDate(appointment.date);
       if (!registeredAt || !dateKey) continue;
 
-      const doctor = appointment.doctor_name || "Dr. Nitin Bhalme";
+      const doctor = appointment.doctor_name || "Dr. Rajesh Gandhi";
       const isGynae = /shillpa|gyn/i.test(doctor);
       const patient = patientByPhoneAndName.get(
         `${String(appointment.phone).replace(/\D/g, "").slice(-10)}:${String(appointment.name).trim().toLowerCase()}`

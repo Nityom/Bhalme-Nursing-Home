@@ -102,7 +102,7 @@ const ViewPatients = () => {
       age: patient.age,
       gender: patient.sex,
       referenceNumber: (patient.reference_number || targetRx.reference_number || '').replace(/^CH/i, 'CRX'),
-      doctorName: targetRx.doctor_name || 'Dr. Nitin Bhalme',
+      doctorName: targetRx.doctor_name || 'Dr. Rajesh Gandhi',
       prescriptionDate: targetRx.prescription_date || targetRx.date,
       chiefComplaint: targetRx.chief_complaint || targetRx.cc,
       diagnosis: targetRx.diagnosis || targetRx.de,
@@ -125,13 +125,13 @@ const ViewPatients = () => {
       patient.prescriptions.forEach((p) => {
         const doc = (p.doctor_name || '').toLowerCase();
         if (doc.includes('shilpa') || doc.includes('shillpa') || doc.includes('gynae')) {
-          docs.add('Dr. Nitin Bhalme');
+          docs.add('Dr. Rajesh Gandhi');
         } else {
-          docs.add('Dr. Nitin Bhalme');
+          docs.add('Dr. Rajesh Gandhi');
         }
       });
     } else {
-      docs.add('Dr. Nitin Bhalme');
+      docs.add('Dr. Rajesh Gandhi');
     }
     return Array.from(docs);
   }, []);
@@ -141,10 +141,10 @@ const ViewPatients = () => {
     if (latestRx?.doctor_name) {
       const doc = latestRx.doctor_name.toLowerCase();
       if (doc.includes('shilpa') || doc.includes('shillpa') || doc.includes('gynae')) {
-        return 'Dr. Nitin Bhalme';
+        return 'Dr. Rajesh Gandhi';
       }
     }
-    return 'Dr. Nitin Bhalme';
+    return 'Dr. Rajesh Gandhi';
   }, []);
 
   const fetchPatients = useCallback(async () => {
@@ -476,11 +476,11 @@ const ViewPatients = () => {
   }, [searchTerm, selectedDoctorFilter, selectedDateFilter, patients, getPatientDoctors]);
 
   const orthoCount = useMemo(() => {
-    return patients.filter((p) => getPatientDoctors(p).includes('Dr. Nitin Bhalme')).length;
+    return patients.filter((p) => getPatientDoctors(p).includes('Dr. Rajesh Gandhi')).length;
   }, [patients, getPatientDoctors]);
 
   const gynaeCount = useMemo(() => {
-    return patients.filter((p) => getPatientDoctors(p).includes('Dr. Nitin Bhalme')).length;
+    return patients.filter((p) => getPatientDoctors(p).includes('Dr. Rajesh Gandhi')).length;
   }, [patients, getPatientDoctors]);
 
   const filteredConsultationsCount = useMemo(() => {
@@ -488,7 +488,7 @@ const ViewPatients = () => {
       if (selectedDoctorFilter === 'All') return sum + patient.totalVisits;
       const docRxCount = patient.prescriptions.filter((p) => {
         const d = (p.doctor_name || '').toLowerCase();
-        if (selectedDoctorFilter === 'Dr. Nitin Bhalme') {
+        if (selectedDoctorFilter === 'Dr. Rajesh Gandhi') {
           return d.includes('shilpa') || d.includes('shillpa');
         }
         return !d.includes('shilpa') && !d.includes('shillpa');
@@ -763,14 +763,14 @@ const ViewPatients = () => {
 
             <button
               type="button"
-              onClick={() => setSelectedDoctorFilter('Dr. Nitin Bhalme')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${selectedDoctorFilter === 'Dr. Nitin Bhalme'
+              onClick={() => setSelectedDoctorFilter('Dr. Rajesh Gandhi')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${selectedDoctorFilter === 'Dr. Rajesh Gandhi'
                   ? 'bg-sky-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-sky-700 hover:bg-sky-50'
                 }`}
             >
-              <span>Dr. Nitin Bhalme</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedDoctorFilter === 'Dr. Nitin Bhalme' ? 'bg-white/25 text-white' : 'bg-sky-100 text-sky-800'
+              <span>Dr. Rajesh Gandhi</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedDoctorFilter === 'Dr. Rajesh Gandhi' ? 'bg-white/25 text-white' : 'bg-sky-100 text-sky-800'
                 }`}>
                 {patients.length}
               </span>
@@ -1331,7 +1331,7 @@ const ViewPatients = () => {
                                         const params = new URLSearchParams({
                                           billIds: allIds.join(','),
                                           signature: 'sign.png',
-                                          doctorName: 'Dr. Nitin Bhalme',
+                                          doctorName: 'Dr. Rajesh Gandhi',
                                         });
                                         window.open(`/print-bill/statement?${params.toString()}`, '_blank');
                                       }}
@@ -1421,7 +1421,7 @@ const ViewPatients = () => {
                             const params = new URLSearchParams({
                               billIds: allBillIds.join(','),
                               signature: 'sign.png',
-                              doctorName: 'Dr. Nitin Bhalme',
+                              doctorName: 'Dr. Rajesh Gandhi',
                             });
                             window.open(`/print-bill/statement?${params.toString()}`, '_blank');
                           }}

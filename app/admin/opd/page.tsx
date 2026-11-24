@@ -299,7 +299,7 @@ const normalizePatientIdentity = (item: OPDQueueItem): OPDQueueItem => {
       ageUnit: "years",
       sex: "Female",
       address: "waigao",
-      doctor: "Dr. Nitin Bhalme",
+      doctor: "Dr. Rajesh Gandhi",
       department: "Obstetrics & Gynaecology",
     };
   }
@@ -456,14 +456,14 @@ export default function OPDManagementPage() {
       try {
         const saved = localStorage.getItem("bhalme_opd_doctor_filter");
         if (saved && (saved.includes("Shilpa") || saved.includes("Shillpa"))) {
-          return "Dr. Nitin Bhalme";
+          return "Dr. Rajesh Gandhi";
         }
         if (saved && saved.includes("Vipeen")) {
-          return "Dr. Nitin Bhalme";
+          return "Dr. Rajesh Gandhi";
         }
       } catch {}
     }
-    return "Dr. Nitin Bhalme";
+    return "Dr. Rajesh Gandhi";
   });
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("All");
   const [queueSearch, setQueueSearch] = useState<string>("");
@@ -491,7 +491,7 @@ export default function OPDManagementPage() {
     phone: "",
     age: "30",
     sex: "Male" as "Male" | "Female" | "Other",
-    doctor: DOCTORS[0]?.name || "Dr. Nitin Bhalme",
+    doctor: DOCTORS[0]?.name || "Dr. Rajesh Gandhi",
     bp: "",
     pulse: "",
     weight: "",
@@ -1062,7 +1062,7 @@ export default function OPDManagementPage() {
     }
   };
 
-  // Doctor change handler (syncs department & auto-sets female for Dr. Nitin Bhalme)
+  // Doctor change handler (syncs department & auto-sets female for Dr. Rajesh Gandhi)
   const handleDoctorChange = (doctorName: string) => {
     const docObj = DOCTORS.find((d) => d.name === doctorName);
     const isGyn = isShillpaDoctor(doctorName);
@@ -1579,7 +1579,7 @@ export default function OPDManagementPage() {
       phone: "",
       age: "30",
       sex: "Male",
-      doctor: DOCTORS[0]?.name || hospitalConfig.doctors[0]?.name || "Dr. Nitin Bhalme",
+      doctor: DOCTORS[0]?.name || hospitalConfig.doctors[0]?.name || "Dr. Rajesh Gandhi",
       bp: "",
       pulse: "",
       weight: "",

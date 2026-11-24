@@ -297,7 +297,7 @@ export default function IpdPrintDischargeModal({
                   return <img src={sigUrl} alt="Signature" className="h-9 mx-auto object-contain" />;
                 })()}
                 <div className="font-bold text-xs text-slate-900 mt-1">
-                  {admission.consultantDoctor || "Dr. Nitin Bhalme"}
+                  {admission.consultantDoctor || "Dr. Rajesh Gandhi"}
                 </div>
                 <div className="text-[10px] text-slate-500">Authorized Consultant</div>
                 {!dischargeIncludeSignature && (

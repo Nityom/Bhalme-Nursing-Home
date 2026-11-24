@@ -540,7 +540,7 @@ export default function PrescriptionLivePreview({
             </div>
           )}
           <div className="font-bold text-base sm:text-lg text-slate-900">
-            {selectedDoctorName || 'Dr. Nitin Bhalme'}
+            {selectedDoctorName || 'Dr. Rajesh Gandhi'}
           </div>
           {!includeSignature && (
             <div className="text-[10px] text-slate-400 italic">
