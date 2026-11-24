@@ -120,8 +120,11 @@ export function usePrescriptionForm() {
         localStorage.removeItem('bhalme_rx_sections_order');
         localStorage.removeItem('bhalme_rx_sections_order_v2');
         localStorage.removeItem('bhalme_rx_sections_order_v3');
+        localStorage.removeItem('bhalme_rx_sections_order_v4');
+        localStorage.removeItem('bhalme_rx_sections_order_v5');
+        localStorage.removeItem('bhalme_rx_sections_order_v6');
 
-        const saved = localStorage.getItem('bhalme_rx_sections_order_v4');
+        const saved = localStorage.getItem('bhalme_rx_sections_order_v7');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -142,6 +145,9 @@ export function usePrescriptionForm() {
     setRxSectionOrder(DEFAULT_RX_SECTION_ORDER);
     if (typeof window !== 'undefined') {
       try {
+        localStorage.removeItem('bhalme_rx_sections_order_v7');
+        localStorage.removeItem('bhalme_rx_sections_order_v6');
+        localStorage.removeItem('bhalme_rx_sections_order_v5');
         localStorage.removeItem('bhalme_rx_sections_order_v4');
         localStorage.removeItem('bhalme_rx_sections_order');
       } catch {}
@@ -334,6 +340,7 @@ export function usePrescriptionForm() {
   const [eddDate, setEddDate] = useState('');
   const [gestationalWeeks, setGestationalWeeks] = useState('');
   const [gestationalDays, setGestationalDays] = useState('');
+  const [showObstetrics, setShowObstetrics] = useState<boolean>(true);
 
   // Auto-calculate BMI
   const displayBmi = useMemo(() => {
@@ -741,6 +748,7 @@ export function usePrescriptionForm() {
       eddDate,
       gestationalWeeks,
       gestationalDays,
+      showObstetrics,
     };
 
     savePrescriptionDraft(draft);
@@ -850,6 +858,7 @@ export function usePrescriptionForm() {
     if (draft.eddDate !== undefined) setEddDate(draft.eddDate);
     if (draft.gestationalWeeks !== undefined) setGestationalWeeks(draft.gestationalWeeks);
     if (draft.gestationalDays !== undefined) setGestationalDays(draft.gestationalDays);
+    if (draft.showObstetrics !== undefined) setShowObstetrics(draft.showObstetrics);
 
     setShowDraftBanner(false);
     showTemplateToast('Prescription draft restored!');
@@ -953,6 +962,7 @@ export function usePrescriptionForm() {
         eddDate,
         gestationalWeeks,
         gestationalDays,
+        showObstetrics,
       };
 
       savePrescriptionDraft(draft);
@@ -2099,7 +2109,7 @@ export function usePrescriptionForm() {
     setIsEmailModalOpen(true);
   };
 
-  // Submit Handler
+  // Submit Handler (Save & Print)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -2107,7 +2117,7 @@ export function usePrescriptionForm() {
       const saved = await savePrescriptionToDatabase();
       if (saved) {
         showTemplateToast('Prescription saved successfully!');
-        setEmailSuccessPrompt(true);
+        setIsPrintModalOpen(true);
       }
     } finally {
       setLoading(false);
@@ -2646,6 +2656,8 @@ export function usePrescriptionForm() {
     setGestationalWeeks,
     gestationalDays,
     setGestationalDays,
+    showObstetrics,
+    setShowObstetrics,
 
     // Diagnosis & Procedures
     diagnosesList,

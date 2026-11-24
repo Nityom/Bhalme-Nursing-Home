@@ -32,7 +32,7 @@ import {
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { hospitalConfig } from "@/config/hospital";
-import { createPatient, getPatients, getPatientByPhoneNumber, getPatientById, getNextPatientReference, generateRandomPatientReference } from "@/services/patients";
+import { createPatient, getPatients, getPatientByPhoneNumber, getPatientById, getNextPatientReference } from "@/services/patients";
 import { Patient } from "@/types/patient";
 import PatientSearchInput from "@/components/PatientSearchInput";
 import { getPrescriptionsByPatient } from "@/services/prescription";
@@ -75,7 +75,10 @@ interface OPDQueueItem {
   time: string;
 }
 
-const DOCTORS = hospitalConfig.doctors.map(d => ({ name: d.name, specialty: d.designation || 'General OPD' }));
+const DOCTORS = [
+  { name: "Dr. Rajesh Gandhi", specialty: "Orthopaedics & Joint Replacement" },
+  { name: "Dr. Rajesh Gandhi", specialty: "Obstetrics & Gynaecology" },
+];
 
 const DEPARTMENTS = [
   "Orthopaedics & Joint Replacement",
@@ -282,9 +285,9 @@ const normalizePatientIdentity = (item: OPDQueueItem): OPDQueueItem => {
   const rawUhid = (item.uhid || "").trim().toUpperCase();
 
   const isSamiksha =
-    rawUhid === "CRX0069" ||
-    rawUhid === "CRX4469" ||
-    rawUhid === "CRX7494" ||
+    rawUhid === "GNH0069" ||
+    rawUhid === "GNH4469" ||
+    rawUhid === "GNH7494" ||
     rawPhone === "9665651439" ||
     rawPhone === "966561439" ||
     (rawName.includes("samiksha") && (rawName.includes("varnerkar") || rawName.includes("saurangpate")));
@@ -293,7 +296,7 @@ const normalizePatientIdentity = (item: OPDQueueItem): OPDQueueItem => {
     return {
       ...item,
       name: "samiksha varnerkar",
-      uhid: "CRX0069",
+      uhid: "GNH0069",
       phone: "9665651439",
       age: "21",
       ageUnit: "years",
@@ -306,7 +309,7 @@ const normalizePatientIdentity = (item: OPDQueueItem): OPDQueueItem => {
 
   return {
     ...item,
-    uhid: rawUhid.replace(/^CH/i, "CRX"),
+    uhid: rawUhid.replace(/^CH/i, "GNH"),
   };
 };
 
@@ -330,7 +333,7 @@ const getStatusRank = (status?: string): number => {
 const deduplicateOpdQueue = (items: OPDQueueItem[]): OPDQueueItem[] => {
   if (!items || !Array.isArray(items)) return [];
 
-  // Step 1: Normalize identity across all items (unifying Samiksha to CRX0069)
+  // Step 1: Normalize identity across all items (unifying Samiksha to GNH0069)
   const normalized = items.map(normalizePatientIdentity);
 
   // Step 2: Group by date and doctor key
@@ -484,28 +487,24 @@ export default function OPDManagementPage() {
     temperature: "",
   });
 
-  // Quick Add Patient Modal state
-  const [showQuickAddModal, setShowQuickAddModal] = useState(false);
-  const [quickAddData, setQuickAddData] = useState({
-    name: "",
-    phone: "",
-    age: "30",
-    sex: "Male" as "Male" | "Female" | "Other",
-    doctor: DOCTORS[0]?.name || "Dr. Rajesh Gandhi",
-    bp: "",
-    pulse: "",
-    weight: "",
-    reference_number: "",
-  });
-  const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
-
-  const allAppointments = useQuery(api.appointments.list);
-  const convexPatients = useQuery(api.patients.list);
-  const allBills = useQuery(api.bills.list, {});
-  const allPrescriptions = useQuery(api.prescriptions.list);
+  const liveTodayAppointments = useQuery(api.appointments.getByDate, { date: todayStr });
+  const liveSelectedDateAppointments = useQuery(
+    api.appointments.getByDate,
+    selectedApptDate !== todayStr ? { date: selectedApptDate } : "skip"
+  );
+  const allAppointments = liveTodayAppointments;
+  const convexPatients = useQuery(api.patients.list, activeTab === "directory" ? { limit: 100 } : "skip");
+  const allBills = useQuery(api.bills.list, { startDate: todayStr });
   const updateAppointmentMutation = useMutation(api.appointments.update);
 
-  const liveOpdQueue = useQuery(api.opd_queue.list, {});
+  const liveOpdQueue = useQuery(api.opd_queue.list, { date: selectedQueueDate });
+
+  const isPastDateFallbackNeeded =
+    selectedQueueDate !== todayStr && (!liveOpdQueue || liveOpdQueue.length === 0);
+  const pastDateBills = useQuery(
+    api.bills.list,
+    isPastDateFallbackNeeded ? { startDate: selectedQueueDate, endDate: selectedQueueDate } : "skip"
+  );
   const upsertOpdQueueMutation = useMutation(api.opd_queue.upsert);
   const updateOpdQueueStatusMutation = useMutation(api.opd_queue.updateStatus);
   const removeOpdQueueMutation = useMutation(api.opd_queue.remove);
@@ -514,10 +513,36 @@ export default function OPDManagementPage() {
   const syncingAppointmentIds = React.useRef(new Set<string>());
   const dismissedAppointmentIds = React.useRef(new Set<string>());
 
+  const queueUhids = useMemo(() => {
+    return Array.from(new Set(queue.map((q) => (q.uhid || "").trim().toUpperCase()).filter(Boolean)));
+  }, [queue]);
+
+  const queuePhones = useMemo(() => {
+    return Array.from(
+      new Set(
+        queue
+          .filter((q) => !q.uhid || !q.uhid.trim())
+          .map((q) => (q.phone || "").replace(/\D/g, "").slice(-10))
+          .filter((p) => p.length === 10)
+      )
+    );
+  }, [queue]);
+
+  const queueVisitTracking = useQuery(
+    api.prescriptions.getQueueVisitTracking,
+    selectedQueueDate === todayStr && (queueUhids.length > 0 || queuePhones.length > 0)
+      ? {
+          uhids: queueUhids,
+          phones: queuePhones,
+          todayDate: todayStr,
+        }
+      : "skip"
+  );
+
   // Keep scheduled appointments visible in the OPD queue even when they were
   // created by an external channel such as the WhatsApp assistant.
   useEffect(() => {
-    if (!allAppointments || !liveOpdQueue) return;
+    if (selectedQueueDate !== todayStr || !allAppointments || !liveOpdQueue) return;
 
     const queuedAppointmentIds = new Set(
       liveOpdQueue
@@ -625,57 +650,52 @@ export default function OPDManagementPage() {
         }
       })
     );
-  }, [allAppointments, liveOpdQueue, todayStr, upsertOpdQueueMutation]);
+  }, [allAppointments, liveOpdQueue, selectedQueueDate, todayStr, upsertOpdQueueMutation]);
 
   // Map of opd_visit_id / reference_number / phone to prescription & last visit tracking
   const { prescriptionByVisitId, prescriptionByUhid, prescriptionByPhone, patientLastVisitMap } = useMemo(() => {
     const byVisit = new Map<string, any>();
     const byUhid = new Map<string, any>();
     const byPhone = new Map<string, any>();
-    const lastVisit = new Map<string, { date: string; daysAgo: number }>();
+    const lastVisit = new Map<string, { date: string; daysAgo: number; doctor?: string; diagnosis?: string }>();
 
-    if (allPrescriptions && Array.isArray(allPrescriptions)) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Sort chronological descending
-      const sorted = [...allPrescriptions].sort((a: any, b: any) => {
-        const da = new Date(a.prescription_date || a.created_at || a._creationTime || 0).getTime();
-        const db = new Date(b.prescription_date || b.created_at || b._creationTime || 0).getTime();
-        return db - da;
-      });
-
-      for (const rx of sorted as any[]) {
-        if (rx.opd_visit_id && !byVisit.has(rx.opd_visit_id)) {
-          byVisit.set(rx.opd_visit_id, rx);
+    // 1. First, populate from dedicated targeted query results (indexed, guaranteed non-truncated)
+    if (queueVisitTracking) {
+      if (queueVisitTracking.todayRxByVisitId) {
+        for (const [vId, rx] of Object.entries(queueVisitTracking.todayRxByVisitId)) {
+          byVisit.set(vId, rx);
         }
-        const uhid = (rx.reference_number || "").trim().toUpperCase();
-        if (uhid && !byUhid.has(uhid)) {
+      }
+      if (queueVisitTracking.todayRxByUhid) {
+        for (const [uhid, rx] of Object.entries(queueVisitTracking.todayRxByUhid)) {
           byUhid.set(uhid, rx);
+          try {
+            byUhid.set(decodeURIComponent(uhid), rx);
+          } catch {}
         }
-        const rawPhone = (rx.phone_number || rx.phone || "").replace(/\D/g, "").slice(-10);
-        const rxName = (rx.patient_name || "").trim().toLowerCase();
-        if (rawPhone && rxName && !byPhone.has(`${rawPhone}_${rxName}`)) {
-          byPhone.set(`${rawPhone}_${rxName}`, rx);
+      }
+      if (queueVisitTracking.todayRxByPhone) {
+        for (const [phKey, rx] of Object.entries(queueVisitTracking.todayRxByPhone)) {
+          byPhone.set(phKey, rx);
+          try {
+            byPhone.set(decodeURIComponent(phKey), rx);
+          } catch {}
         }
-        if (rawPhone && !byPhone.has(rawPhone)) {
-          byPhone.set(rawPhone, rx);
+      }
+      if (queueVisitTracking.lastVisitByUhid) {
+        for (const [uhid, info] of Object.entries(queueVisitTracking.lastVisitByUhid)) {
+          lastVisit.set(uhid, info);
+          try {
+            lastVisit.set(decodeURIComponent(uhid), info);
+          } catch {}
         }
-
-        // For last visit, find the most recent visit before today
-        const rxDateStr = rx.prescription_date || (rx.created_at ? String(rx.created_at).split("T")[0] : "");
-        if (rxDateStr) {
-          const rxDate = new Date(rxDateStr);
-          rxDate.setHours(0, 0, 0, 0);
-          const diffDays = Math.round((today.getTime() - rxDate.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDays > 0) {
-            if (uhid && !lastVisit.has(uhid)) {
-              lastVisit.set(uhid, { date: rxDateStr, daysAgo: diffDays });
-            }
-            if (rawPhone && rxName && !lastVisit.has(`${rawPhone}_${rxName}`)) {
-              lastVisit.set(`${rawPhone}_${rxName}`, { date: rxDateStr, daysAgo: diffDays });
-            }
-          }
+      }
+      if (queueVisitTracking.lastVisitByPhone) {
+        for (const [phKey, info] of Object.entries(queueVisitTracking.lastVisitByPhone)) {
+          lastVisit.set(phKey, info);
+          try {
+            lastVisit.set(decodeURIComponent(phKey), info);
+          } catch {}
         }
       }
     }
@@ -709,7 +729,7 @@ export default function OPDManagementPage() {
       prescriptionByPhone: byPhone,
       patientLastVisitMap: lastVisit,
     };
-  }, [allPrescriptions, allAppointments]);
+  }, [queueVisitTracking, allAppointments]);
 
   const formatVisitDate = (isoStr?: string) => {
     if (!isoStr) return "";
@@ -730,15 +750,16 @@ export default function OPDManagementPage() {
   }, [allBills]);
 
   const todayAppointments = useMemo(() => {
-    if (!allAppointments) return [];
-    return allAppointments
+    if (!liveTodayAppointments) return [];
+    return [...liveTodayAppointments]
       .filter((a) => a.date === todayStr)
       .sort((a, b) => (b.time || "").localeCompare(a.time || "") || (b._creationTime || 0) - (a._creationTime || 0));
-  }, [allAppointments, todayStr]);
+  }, [liveTodayAppointments, todayStr]);
 
   const appointmentsForSelectedDate = useMemo(() => {
-    if (!allAppointments) return [];
-    return allAppointments
+    const list = selectedApptDate === todayStr ? liveTodayAppointments : liveSelectedDateAppointments;
+    if (!list) return [];
+    return list
       .filter((a) => a.date === selectedApptDate)
       .filter((a) => {
         if (apptDoctorFilter === "All") return true;
@@ -753,7 +774,7 @@ export default function OPDManagementPage() {
         );
       })
       .sort((a, b) => (b.time || "").localeCompare(a.time || "") || (b._creationTime || 0) - (a._creationTime || 0));
-  }, [allAppointments, selectedApptDate, apptDoctorFilter, apptSearchQuery]);
+  }, [liveTodayAppointments, liveSelectedDateAppointments, selectedApptDate, todayStr, apptDoctorFilter, apptSearchQuery]);
 
   const isApptInQueue = (appt: any) => {
     return queue.find(
@@ -777,7 +798,7 @@ export default function OPDManagementPage() {
         age: Number(p.age) || 0,
         sex: p.sex,
         phone_number: p.phone_number,
-        reference_number: (p.reference_number || "").replace(/^CH/i, "CRX"),
+        reference_number: (p.reference_number || "").replace(/^CH/i, "GNH"),
         address: p.address,
         email: p.email,
         whatsapp_number: p.whatsapp_number,
@@ -830,12 +851,12 @@ export default function OPDManagementPage() {
             } catch (_) { }
 
             const phoneToRef = new Map(
-              dbPatients.map((p) => [p.phone_number?.trim(), p.reference_number?.replace(/^CH/i, "CRX")])
+              dbPatients.map((p) => [p.phone_number?.trim(), p.reference_number?.replace(/^CH/i, "GNH")])
             );
 
             let changed = rawDeduped.length !== parsed.length;
             const updated = rawDeduped.map((item: any) => {
-              let uhid = (item.uhid || "").replace(/^CH/i, "CRX");
+              let uhid = (item.uhid || "").replace(/^CH/i, "GNH");
               const cleanPhone = (item.phone || "").trim();
 
               // Repair UHID from authoritative database record if available
@@ -845,17 +866,17 @@ export default function OPDManagementPage() {
                   uhid = dbRef;
                   changed = true;
                 }
-              } else if (cleanPhone === "1234567890" && uhid !== "CRX0001") {
-                uhid = "CRX0001";
+              } else if (cleanPhone === "1234567890" && uhid !== "GNH0001") {
+                uhid = "GNH0001";
                 changed = true;
-              } else if (cleanPhone === "1234567899" && uhid !== "CRX0002") {
-                uhid = "CRX0002";
+              } else if (cleanPhone === "1234567899" && uhid !== "GNH0002") {
+                uhid = "GNH0002";
                 changed = true;
-              } else if (cleanPhone === "7796308778" && uhid !== "CRX0003") {
-                uhid = "CRX0003";
+              } else if (cleanPhone === "7796308778" && uhid !== "GNH0003") {
+                uhid = "GNH0003";
                 changed = true;
-              } else if ((cleanPhone === "9665651439" || cleanPhone === "966561439" || (item.name || "").toLowerCase().includes("varnerkar") || (item.name || "").toLowerCase().includes("saurangpate") || uhid === "CRX4469" || uhid === "CRX7494") && uhid !== "CRX0069") {
-                uhid = "CRX0069";
+              } else if ((cleanPhone === "9665651439" || cleanPhone === "966561439" || (item.name || "").toLowerCase().includes("varnerkar") || (item.name || "").toLowerCase().includes("saurangpate") || uhid === "GNH4469" || uhid === "GNH7494") && uhid !== "GNH0069") {
+                uhid = "GNH0069";
                 changed = true;
               }
 
@@ -1062,7 +1083,7 @@ export default function OPDManagementPage() {
     }
   };
 
-  // Doctor change handler (syncs department & auto-sets female for Dr. Rajesh Gandhi)
+  // Doctor change handler (syncs department & auto-sets female for Dr. Shilpa Raut)
   const handleDoctorChange = (doctorName: string) => {
     const docObj = DOCTORS.find((d) => d.name === doctorName);
     const isGyn = isShillpaDoctor(doctorName);
@@ -1089,15 +1110,18 @@ export default function OPDManagementPage() {
       alert("Please enter patient name.");
       return;
     }
-    if (cleanPhone && cleanPhone.length !== 10) {
-      alert(`Mobile number must be 10 digits or left empty. You have entered ${cleanPhone.length} digits.`);
+    if (!cleanPhone) {
+      alert("Please enter patient 10-digit mobile number.");
+      return;
+    }
+    if (cleanPhone.length !== 10) {
+      alert(`Mobile number must be exactly 10 digits. You have entered ${cleanPhone.length} digits.`);
       return;
     }
 
     setSubmitting(true);
     try {
       let uhid = await getNextPatientReference();
-      if (!uhid) uhid = generateRandomPatientReference();
       let patientId: string | undefined;
 
       try {
@@ -1109,32 +1133,29 @@ export default function OPDManagementPage() {
           address: formData.address.trim() || undefined,
           email: formData.email.trim() || undefined,
           whatsapp_number: formData.whatsapp_number.trim() || undefined,
-          reference_number: uhid,
         } as any);
 
         patientId = res ? String(res) : undefined;
         // Check if patient reference exists in database
         if (existingPatientFound?.reference_number) {
-          uhid = existingPatientFound.reference_number.replace(/^CH/i, "BNH").replace(/^CRX/i, "BNH");
+          uhid = existingPatientFound.reference_number.replace(/^CH/i, "GNH");
         } else if (patientId) {
           const pt = await getPatientById(patientId);
           if (pt?.reference_number) {
-            uhid = pt.reference_number.replace(/^CH/i, "BNH").replace(/^CRX/i, "BNH");
+            uhid = pt.reference_number.replace(/^CH/i, "GNH");
           }
         }
         if (!uhid) {
           const pt = await getPatientByPhoneNumber(cleanPhone, formData.name.trim());
           if (pt?.reference_number) {
-            uhid = pt.reference_number.replace(/^CH/i, "BNH").replace(/^CRX/i, "BNH");
+            uhid = pt.reference_number.replace(/^CH/i, "GNH");
           } else {
             uhid = await getNextPatientReference();
-            if (!uhid) uhid = generateRandomPatientReference();
           }
         }
       } catch (convexErr) {
         console.warn("Could not sync with Convex directly, using token:", convexErr);
         uhid = await getNextPatientReference();
-        if (!uhid) uhid = generateRandomPatientReference();
       }
 
       // 2. Next Token number for the day (guaranteed unique sequential)
@@ -1261,8 +1282,11 @@ export default function OPDManagementPage() {
         console.warn("Could not sync new registration to Convex:", err);
       }
 
-      // Directly open prescription for this newly registered patient!
-      startPrescription(newItem);
+      // Notification banner and switch directly to queue without popup/slip prompt
+      setSuccessNotification(`Patient ${newItem.name} registered with Token #${tokenNumber}! Added to OPD Queue.`);
+      // Switch to queue and ensure viewing today
+      setSelectedQueueDate(today);
+      setActiveTab("queue");
 
       // Reset form
       setFormData({
@@ -1394,14 +1418,16 @@ export default function OPDManagementPage() {
       const today = getTodayString();
       let uhid = "";
       let patientId: string | undefined = undefined;
+      let existingPt: any = null;
 
       try {
         let pt = await getPatientByPhoneNumber(appt.phone?.trim() || "", appt.name?.trim());
         if (pt) {
+          existingPt = pt;
           patientId = pt.id;
-          uhid = (pt.reference_number || "").replace(/^CH/i, "CRX");
-          if (uhid === "CRX0002" && pt.name?.toLowerCase() !== "testing") {
-            uhid = "CRX0003";
+          uhid = (pt.reference_number || "").replace(/^CH/i, "GNH");
+          if (uhid === "GNH0002" && pt.name?.toLowerCase() !== "testing") {
+            uhid = "GNH0003";
           }
         } else {
           // If patient does not exist yet, fetch the guaranteed next unique reference
@@ -1476,7 +1502,7 @@ export default function OPDManagementPage() {
         doctor: docName,
         department: dept,
         priority: "Normal",
-        visitType: "Appointment",
+        visitType: existingPt ? "Routine Follow-up" : "Appointment",
         status: "Waiting",
         vitals: {
           bp: customVitals?.bp?.trim() || undefined,
@@ -1567,126 +1593,6 @@ export default function OPDManagementPage() {
     router.push(`/admin/prescription?${params.toString()}`);
   };
 
-  // Open Quick Add Patient modal with auto-assigned/random ID
-  const openQuickAddModal = async () => {
-    let initialRef = generateRandomPatientReference();
-    try {
-      const nextRef = await getNextPatientReference();
-      if (nextRef) initialRef = nextRef;
-    } catch {}
-    setQuickAddData({
-      name: "",
-      phone: "",
-      age: "30",
-      sex: "Male",
-      doctor: DOCTORS[0]?.name || hospitalConfig.doctors[0]?.name || "Dr. Rajesh Gandhi",
-      bp: "",
-      pulse: "",
-      weight: "",
-      reference_number: initialRef,
-    });
-    setShowQuickAddModal(true);
-  };
-
-  // Submit Quick Add Patient & directly open prescription
-  const handleQuickAddSubmit = async (e?: React.FormEvent, openPrescriptionDirectly = true) => {
-    if (e) e.preventDefault();
-    if (!quickAddData.name.trim()) {
-      alert("Please enter patient name.");
-      return;
-    }
-
-    setQuickAddSubmitting(true);
-    try {
-      const cleanPhone = quickAddData.phone.replace(/\D/g, "");
-      let uhid = quickAddData.reference_number.trim() || generateRandomPatientReference();
-      let patientId: string | undefined;
-
-      try {
-        const res = await createPatient({
-          name: quickAddData.name.trim(),
-          age: Number(quickAddData.age) || 0,
-          sex: quickAddData.sex,
-          phone_number: cleanPhone,
-          reference_number: uhid,
-        } as any);
-        patientId = res ? String(res) : undefined;
-      } catch (convexErr) {
-        console.warn("Could not create patient in Convex:", convexErr);
-      }
-
-      // 2. Next Token number for the day
-      const today = getTodayString();
-      let freshQueue = queue;
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) freshQueue = deduplicateOpdQueue(parsed);
-        }
-      } catch {}
-
-      const targetDocKey = getDoctorKey(quickAddData.doctor);
-      const doctorTodayItems = freshQueue.filter(
-        (q) => getItemLocalDate(q.registeredAt) === today && getDoctorKey(q.doctor) === targetDocKey
-      );
-
-      const existingTokens = doctorTodayItems
-        .map((q) => parseInt(q.token, 10))
-        .filter((n) => !isNaN(n) && n > 0);
-      const nextToken = existingTokens.length > 0 ? Math.max(...existingTokens) + 1 : 1;
-      const tokenNumber = String(nextToken).padStart(2, "0");
-
-      const newItem: OPDQueueItem = {
-        id: `opd_${Date.now()}`,
-        token: tokenNumber,
-        uhid,
-        patientId,
-        name: quickAddData.name.trim(),
-        age: quickAddData.age.trim() || "30",
-        ageUnit: "years",
-        sex: quickAddData.sex,
-        phone: cleanPhone,
-        doctor: quickAddData.doctor,
-        department: DOCTORS[0]?.specialty || "general",
-        priority: "Normal",
-        visitType: "New Registration",
-        status: "Waiting",
-        vitals: {
-          bp: quickAddData.bp.trim() || undefined,
-          pulse: quickAddData.pulse.trim() || undefined,
-          weight: quickAddData.weight.trim() || undefined,
-        },
-        consultationFee: 0,
-        paymentMode: "Free / Exempt",
-        registeredAt: new Date().toISOString(),
-        time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-      };
-
-      const updatedQueue = [newItem, ...queue];
-      saveQueue(updatedQueue);
-
-      try {
-        await upsertOpdQueueMutation(newItem);
-      } catch (err) {
-        console.warn("Could not sync quick registration to Convex:", err);
-      }
-
-      setShowQuickAddModal(false);
-
-      if (openPrescriptionDirectly) {
-        startPrescription(newItem);
-      } else {
-        setSuccessNotification(`Patient ${newItem.name} registered with Token #${tokenNumber}! Added to OPD Queue.`);
-      }
-    } catch (err: any) {
-      console.error("Error quick registering patient:", err);
-      alert("Registration failed: " + (err.message || "Unknown error"));
-    } finally {
-      setQuickAddSubmitting(false);
-    }
-  };
-
   // Launch Hospital Billing pre-filled from OPD (Consultation charge added in Billing)
   const startBilling = async (item: OPDQueueItem) => {
     let prescriptionId = "";
@@ -1770,7 +1676,46 @@ export default function OPDManagementPage() {
   // Filtered queue (Filters by selectedQueueDate, doctor, status, search)
   // Ready patients follow active consultations; Waiting and Completed remain below them.
   const filteredQueue = useMemo(() => {
-    const dedupedList = deduplicateOpdQueue(queue);
+    let sourceQueue = queue;
+
+    if (queue.length === 0 && pastDateBills && Array.isArray(pastDateBills) && pastDateBills.length > 0) {
+      const pastItems: OPDQueueItem[] = pastDateBills.map((b: any, idx: number) => {
+        const isGynae =
+          b.total_amount === 200 ||
+          b.total_amount === 100 ||
+          (b.notes || "").toLowerCase().includes("gynae") ||
+          (b.notes || "").toLowerCase().includes("shilpa");
+        const doc = isGynae ? "Dr. Rajesh Gandhi" : "Dr. Rajesh Gandhi";
+        const dept = isGynae ? "Obstetrics & Gynaecology" : "Orthopaedics & Joint Replacement";
+        const token = String(pastDateBills.length - idx).padStart(2, "0");
+        const regDate = b._creationTime ? new Date(b._creationTime) : new Date(`${selectedQueueDate}T09:00:00+05:30`);
+        const timeStr = regDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" });
+        return {
+          id: `bill_${b.id || b._id}`,
+          token,
+          uhid: b.reference_number || "",
+          name: b.patient_name || "Patient",
+          age: "",
+          ageUnit: "years",
+          sex: isGynae ? "Female" : "Male",
+          phone: b.phone_number || "",
+          doctor: doc,
+          department: dept,
+          priority: "Normal" as const,
+          visitType: "Appointment" as const,
+          status: "Completed",
+          vitals: {},
+          consultationFee: b.total_amount,
+          paymentMode: (b.payment_status === "PAID" ? "Cash" : undefined) as "Cash" | "UPI" | "Card" | "Free / Exempt" | undefined,
+          paymentStatus: b.payment_status,
+          registeredAt: regDate.toISOString(),
+          time: timeStr || "09:00",
+        };
+      });
+      sourceQueue = pastItems;
+    }
+
+    const dedupedList = deduplicateOpdQueue(sourceQueue);
     const list = dedupedList.filter((item) => {
       // 1. Filter by Date (Defaults to Today)
       if (selectedQueueDate) {
@@ -1827,17 +1772,76 @@ export default function OPDManagementPage() {
       const tokenB = parseInt(b.token, 10) || 0;
       return tokenB - tokenA;
     });
-  }, [queue, selectedQueueDate, selectedDoctorFilter, selectedStatusFilter, queueSearch, activeTab]);
+  }, [
+    queue,
+    selectedQueueDate,
+    selectedDoctorFilter,
+    selectedStatusFilter,
+    queueSearch,
+    activeTab,
+    isPastDateFallbackNeeded,
+    pastDateBills,
+    prescriptionByVisitId,
+    prescriptionByUhid,
+    prescriptionByPhone,
+    todayStr,
+  ]);
+
+  // Auto-heal queue status in DB when prescription exists for today's visit
+  useEffect(() => {
+    if (selectedQueueDate !== todayStr || !queue || queue.length === 0) return;
+    for (const item of queue) {
+      if (item.status === "Waiting" || item.status === "Ready") {
+        const uhidNorm = (item.uhid || "").trim().toUpperCase();
+        const phoneNorm = (item.phone || "").replace(/\D/g, "").slice(-10);
+        const itemCleanName = (item.name || "").trim().toLowerCase();
+        const queueItemDate = getItemLocalDate(item.registeredAt) || todayStr;
+        let linked = item.id ? prescriptionByVisitId.get(item.id) : undefined;
+        if (!linked && uhidNorm) {
+          const candidate = prescriptionByUhid.get(uhidNorm);
+          if (candidate) {
+            const cDate = candidate.prescription_date || (candidate.created_at ? String(candidate.created_at).split("T")[0] : "");
+            if (cDate === queueItemDate) linked = candidate;
+          }
+        }
+        if (!linked && phoneNorm) {
+          const candidate = prescriptionByPhone.get(`${phoneNorm}_${itemCleanName}`) || prescriptionByPhone.get(phoneNorm);
+          if (candidate) {
+            const cDate = candidate.prescription_date || (candidate.created_at ? String(candidate.created_at).split("T")[0] : "");
+            if (cDate === queueItemDate) linked = candidate;
+          }
+        }
+        if (linked) {
+          updateOpdQueueStatusMutation({ queue_id: item.id, status: "Completed" }).catch(() => {});
+        }
+      }
+    }
+  }, [queue, selectedQueueDate, prescriptionByVisitId, prescriptionByUhid, prescriptionByPhone, todayStr, updateOpdQueueStatusMutation]);
 
   const displayedQueue = useMemo(() => {
     if (activeTab === "billingQueue") {
-      return filteredQueue.filter((item) => item.status === "Completed");
+      return filteredQueue.filter((item) => {
+        const uhidNorm = (item.uhid || "").trim().toUpperCase();
+        const hasRx = Boolean(
+          (item.id && prescriptionByVisitId.get(item.id)) ||
+          (uhidNorm && prescriptionByUhid.get(uhidNorm))
+        );
+        return item.status === "Completed" || hasRx;
+      });
     }
     if (activeTab === "waitingQueue") {
-      return filteredQueue.filter((item) => item.status === "Waiting" || item.status === "Ready" || item.status === "In Consultation");
+      return filteredQueue.filter((item) => {
+        if (item.status === "Cancelled" || item.status === "Completed") return false;
+        const uhidNorm = (item.uhid || "").trim().toUpperCase();
+        const hasRx = Boolean(
+          (item.id && prescriptionByVisitId.get(item.id)) ||
+          (uhidNorm && prescriptionByUhid.get(uhidNorm))
+        );
+        return !hasRx;
+      });
     }
     return filteredQueue;
-  }, [activeTab, filteredQueue]);
+  }, [activeTab, filteredQueue, prescriptionByVisitId, prescriptionByUhid]);
 
   const waitingQueueCount = useMemo(() => {
     return deduplicateOpdQueue(queue).filter((item) => {
@@ -1895,7 +1899,7 @@ export default function OPDManagementPage() {
             <p className="mt-1 text-base text-slate-500">{activeTab === "waitingQueue" ? "Patients currently in clinic awaiting consultation." : activeTab === "queue" ? `${hospitalConfig.legalName} · Outpatient consultations and live queue.` : activeTab === "billingQueue" ? "Patients move here automatically after their consultation is completed." : activeTab === "appointments" ? "Review arrivals and check scheduled patients into the OPD queue." : activeTab === "register" ? "Create a patient record and add them to today’s consultation queue." : "Find a patient record and continue their care."}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={openQuickAddModal} className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#176e56] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#155944]">
+            <button onClick={() => setActiveTab("register")} className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#176e56] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#155944]">
               <UserPlus className="h-4 w-4" />New patient
             </button>
             <Link href="/admin/prescription" className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50/50 hover:text-emerald-800">
@@ -1925,7 +1929,10 @@ export default function OPDManagementPage() {
           {(activeTab === "queue" || activeTab === "waitingQueue" || activeTab === "billingQueue") && (
             <div className="mb-1.5 flex h-8 flex-nowrap shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-xs whitespace-nowrap self-end">
               <span className="font-medium text-slate-500 text-xs">Doctor:</span>
-              {hospitalConfig.doctors.map((d) => [d.name, d.name] as const).map(([value, label]) => {
+              {[
+                ["Dr. Rajesh Gandhi", "Dr. Rajesh Gandhi"],
+                ["Dr. Rajesh Gandhi", "Dr. Shilpa Raut"],
+              ].map(([value, label]) => {
                 const isSelected = selectedDoctorFilter.toLowerCase().includes(value.toLowerCase().replace(/dr\.?\s*/i, '').slice(0, 5));
                 const isGyn = isShillpaDoctor(value);
                 return (
@@ -2154,16 +2161,6 @@ export default function OPDManagementPage() {
                   <thead><tr className="bg-[#f8faf8] text-xs font-semibold uppercase tracking-[0.1em] text-[#64776c]"><th className="px-5 py-3.5 font-semibold">No.</th><th className="px-4 py-3.5 font-semibold">Patient</th><th className="px-4 py-3.5 font-semibold">Details</th><th className="px-4 py-3.5 font-semibold whitespace-nowrap">Entry Time</th><th className="px-4 py-3.5 font-semibold">Last Visit</th><th className="px-4 py-3.5 font-semibold">Doctor</th><th className="px-4 py-3.5 font-semibold">Status</th><th className="px-5 py-3.5 text-right font-semibold">Actions</th></tr></thead>
                   <tbody className="divide-y divide-[#edf2ee]">
                     {displayedQueue.map((item, index) => {
-                      const isPaid = item.paymentStatus === "PAID" || (item.paymentStatus !== "PENDING" && paidUhidSet.has((item.uhid || "").trim().toUpperCase()));
-                      const statusStyle =
-                        item.status === "Waiting" || item.status === "Ready"
-                          ? "bg-amber-50 text-amber-800 border-amber-100"
-                          : item.status === "Completed"
-                          ? "bg-slate-100 text-slate-700 border-slate-200"
-                          : item.status === "Cancelled"
-                          ? "bg-rose-50 text-rose-700 border-rose-200"
-                          : "bg-emerald-50 text-emerald-800 border-emerald-100";
-
                       const uhidNorm = (item.uhid || "").trim().toUpperCase();
                       const phoneNorm = (item.phone || "").replace(/\D/g, "").slice(-10);
                       const itemCleanName = (item.name || "").trim().toLowerCase();
@@ -2209,20 +2206,49 @@ export default function OPDManagementPage() {
                       }
 
                       const hasPrescription = !!linkedRx;
+                      const effectiveStatus = (hasPrescription && item.status !== "Cancelled")
+                        ? "Completed"
+                        : (item.status === "Ready" ? "Waiting" : item.status);
+
+                      const isPaid = item.paymentStatus === "PAID" || (item.paymentStatus !== "PENDING" && paidUhidSet.has((item.uhid || "").trim().toUpperCase()));
+                      const statusStyle =
+                        effectiveStatus === "Waiting"
+                          ? "bg-amber-50 text-amber-800 border-amber-100"
+                          : effectiveStatus === "Completed"
+                          ? "bg-slate-100 text-slate-700 border-slate-200"
+                          : effectiveStatus === "Cancelled"
+                          ? "bg-rose-50 text-rose-700 border-rose-200"
+                          : "bg-emerald-50 text-emerald-800 border-emerald-100";
+
                       const lastVisitInfo =
                         (uhidNorm && patientLastVisitMap.get(uhidNorm)) ||
-                        (phoneNorm && patientLastVisitMap.get(`${phoneNorm}_${itemCleanName}`));
+                        (phoneNorm && patientLastVisitMap.get(`${phoneNorm}_${itemCleanName}`)) ||
+                        (phoneNorm && patientLastVisitMap.get(phoneNorm));
 
                       const entryTimeStr = formatEntryTime(
                         item.time,
                         item.registeredAt,
                         (item as any).created_at || (item as any)._creationTime
                       );
-                      const waitDuration = getElapsedWaitTime(item.registeredAt, item.time, item.status);
+                      const waitDuration = getElapsedWaitTime(item.registeredAt, item.time, effectiveStatus);
 
                       return <tr key={item.id} className="group transition-colors hover:bg-[#fbfdfb]">
                         <td className="px-5 py-4 text-sm tabular-nums text-[#829188]">{String(displayedQueue.length - index).padStart(2, "0")}</td>
-                        <td className="px-4 py-4"><div className="flex min-w-[205px] items-center"><span className="min-w-0"><b className="block truncate text-base font-bold text-[#50675a]">{item.name}</b><span className="mt-1 block text-sm text-slate-500">#{item.token}{item.uhid ? ` · ${item.uhid}` : ""}</span>{item.priority !== "Normal" && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold uppercase ${item.priority === "Emergency" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{item.priority}</span>}</span></div></td>
+                        <td className="px-4 py-4">
+                          <div className="flex min-w-[205px] items-center">
+                            <span className="min-w-0">
+                              <b className="block truncate text-base font-bold text-[#50675a]">{item.name}</b>
+                              {item.uhid ? (
+                                <span className="mt-1 block text-sm font-medium text-slate-500">{item.uhid}</span>
+                              ) : null}
+                              {item.priority !== "Normal" && (
+                                <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold uppercase ${item.priority === "Emergency" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>
+                                  {item.priority}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        </td>
                         <td className="px-4 py-4">
                           <span className="block text-sm text-[#65796e]">{item.age ? `${item.age} ${item.ageUnit}` : "Age N/A"} · {item.sex}</span>
                           {(item.vitals?.bp || item.vitals?.pulse) ? (
@@ -2273,7 +2299,7 @@ export default function OPDManagementPage() {
                             {item.department || "General consultation"}
                           </span>
                         </td>
-                        <td className="px-4 py-4">{activeTab === "billingQueue" ? <span className={`inline-flex rounded-full border px-3 py-2 text-xs font-semibold ${statusStyle}`}>● Completed</span> : <select aria-label={`Status for ${item.name}`} value={item.status === "Ready" ? "Waiting" : item.status} onChange={(e) => updateStatus(item.id, e.target.value as any)} className={`max-w-[165px] rounded-full border px-3 py-2 text-xs font-semibold outline-none ${statusStyle}`}><option value="Waiting">● Waiting</option><option value="In Consultation">● In consultation</option><option value="Completed">● Completed</option><option value="Cancelled">● Cancelled</option></select>}</td>
+                        <td className="px-4 py-4">{activeTab === "billingQueue" ? <span className={`inline-flex rounded-full border px-3 py-2 text-xs font-semibold ${statusStyle}`}>● Completed</span> : <select aria-label={`Status for ${item.name}`} value={effectiveStatus} onChange={(e) => updateStatus(item.id, e.target.value as any)} className={`max-w-[165px] rounded-full border px-3 py-2 text-xs font-semibold outline-none ${statusStyle}`}><option value="Waiting">● Waiting</option><option value="In Consultation">● In consultation</option><option value="Completed">● Completed</option><option value="Cancelled">● Cancelled</option></select>}</td>
                         <td className="px-5 py-3.5"><div className="flex items-center justify-end gap-1.5">
                           <button type="button" onClick={() => togglePaymentStatus(item.id)} title={isPaid ? "Payment received; click to mark pending" : "Mark payment received"} aria-label={isPaid ? `Payment received for ${item.name}` : `Payment pending for ${item.name}`} className={`grid h-8 w-8 place-items-center rounded-lg border transition ${isPaid ? "border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50"}`}><CheckCircle2 className="h-4 w-4" /></button>
                           <button type="button" onClick={() => startBilling(item)} title="Open billing" className="inline-flex h-9 items-center gap-1 rounded-lg border border-[#dce9df] bg-white px-3 text-xs font-semibold text-[#4d8063] transition hover:bg-[#f1f8f2]"><Receipt className="h-4 w-4"/>Bill</button>
@@ -2854,8 +2880,8 @@ export default function OPDManagementPage() {
                   </>
                 ) : (
                   <>
-                    <FileText className="w-4 h-4" />
-                    Register & Open Prescription
+                    <CheckCircle2 className="w-4 h-4" />
+                    Generate Token & Add to Queue
                   </>
                 )}
               </button>
@@ -3094,208 +3120,6 @@ export default function OPDManagementPage() {
                 {submitting ? "Assigning Token..." : "Check In & Generate Token"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-      {/* QUICK ADD PATIENT MODAL */}
-      {showQuickAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
-                  <UserPlus className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">New Patient Registration</h3>
-                  <p className="text-xs text-slate-500">Auto-assigns ID and opens prescription directly</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowQuickAddModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={(e) => handleQuickAddSubmit(e, true)} className="py-4 space-y-4">
-              {/* Auto-Assigned Patient ID Banner */}
-              <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-sky-800">Assigned Patient ID (UHID):</span>
-                  <span className="font-mono font-bold text-sm bg-white border border-sky-300 text-sky-900 px-2.5 py-0.5 rounded-lg shadow-2xs">
-                    {quickAddData.reference_number || "Auto"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Patient Name */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Patient Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  autoFocus
-                  required
-                  value={quickAddData.name}
-                  onChange={(e) => setQuickAddData({ ...quickAddData, name: e.target.value })}
-                  placeholder="e.g. Ramesh Pawar"
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                />
-              </div>
-
-              {/* Mobile Number & Age */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Mobile Number <span className="text-slate-400 font-normal lowercase">(optional)</span>
-                  </label>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    value={quickAddData.phone}
-                    onChange={(e) => setQuickAddData({ ...quickAddData, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
-                    placeholder="10-digit mobile"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Age
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="120"
-                    value={quickAddData.age}
-                    onChange={(e) => setQuickAddData({ ...quickAddData, age: e.target.value })}
-                    placeholder="e.g. 30"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Sex Selection */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Gender
-                </label>
-                <div className="flex gap-2">
-                  {(["Male", "Female", "Other"] as const).map((gender) => (
-                    <button
-                      key={gender}
-                      type="button"
-                      onClick={() => setQuickAddData({ ...quickAddData, sex: gender })}
-                      className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border transition ${
-                        quickAddData.sex === gender
-                          ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                      }`}
-                    >
-                      {gender}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Doctor */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Doctor
-                </label>
-                <select
-                  value={quickAddData.doctor}
-                  onChange={(e) => setQuickAddData({ ...quickAddData, doctor: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                >
-                  {hospitalConfig.doctors.map((d) => (
-                    <option key={d.id} value={d.name}>
-                      {d.name} ({d.designation})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Vitals (Optional) */}
-              <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/60 space-y-2">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Initial Vitals (Optional)
-                </span>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="text-[10px] text-slate-500 block">BP (mmHg)</label>
-                    <input
-                      type="text"
-                      value={quickAddData.bp}
-                      onChange={(e) => setQuickAddData({ ...quickAddData, bp: e.target.value })}
-                      placeholder="120/80"
-                      className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-slate-500 block">Pulse (bpm)</label>
-                    <input
-                      type="text"
-                      value={quickAddData.pulse}
-                      onChange={(e) => setQuickAddData({ ...quickAddData, pulse: e.target.value })}
-                      placeholder="72"
-                      className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-slate-500 block">Weight (kg)</label>
-                    <input
-                      type="text"
-                      value={quickAddData.weight}
-                      onChange={(e) => setQuickAddData({ ...quickAddData, weight: e.target.value })}
-                      placeholder="65"
-                      className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowQuickAddModal(false);
-                    setActiveTab("register");
-                  }}
-                  className="text-xs text-slate-500 hover:text-emerald-700 underline font-semibold"
-                >
-                  Open Full Registration Form
-                </button>
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setShowQuickAddModal(false)}
-                    className="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={quickAddSubmitting}
-                    className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs flex items-center gap-1.5 disabled:opacity-50"
-                  >
-                    {quickAddSubmitting ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving...
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-3.5 h-3.5" /> Save & Open Prescription
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </form>
           </div>
         </div>
       )}

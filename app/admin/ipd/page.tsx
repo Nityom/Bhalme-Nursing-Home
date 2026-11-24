@@ -128,13 +128,14 @@ export default function IPDManagementPage() {
   // Convex Real-Time Synchronization Hooks
   const liveAdmissions = useQuery(api.ipd.list, {});
   const liveBedConfig = useQuery(api.ipd.getBedConfig, {});
-  const liveOpdQueue = useQuery(api.opd_queue.list, {});
+  const liveOpdQueue = useQuery(api.opd_queue.list, { limit: 50 });
   const liveAppointments = useQuery(api.appointments.list);
-  const livePatients = useQuery(api.patients.list);
+  const livePatients = useQuery(api.patients.list, { limit: 100 });
   const saveIpdMutation = useMutation(api.ipd.save);
   const updateIpdStatusMutation = useMutation(api.ipd.updateStatus);
   const saveBedConfigMutation = useMutation(api.ipd.saveBedConfig);
   const syncLocalAdmissionsMutation = useMutation(api.ipd.syncLocalAdmissions);
+  const recordBillTransactionsMutation = useMutation(api.payment_transactions.recordBillTransactions);
 
   // Tab State: 'dashboard' | 'admit' | 'history'
   const [activeTab, setActiveTab] = useState<"dashboard" | "admit" | "history">("dashboard");
@@ -274,6 +275,8 @@ export default function IPDManagementPage() {
 
   // Discharge Form State
   const [dischargeForm, setDischargeForm] = useState({
+    admissionDate: "",
+    admissionTime: "",
     dischargeDate: new Date().toISOString().split("T")[0],
     dischargeTime: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
     conditionAtDischarge: "Cured / Stable",
@@ -572,7 +575,7 @@ export default function IPDManagementPage() {
         id: `appointment_${appointment._id}`,
         appointmentId: String(appointment._id),
         token: "APPT",
-        uhid: String(patient?.reference_number || "").replace(/^CH/i, "CRX"),
+        uhid: String(patient?.reference_number || "").replace(/^CH/i, "GNH"),
         patientId: patient?._id,
         name: String(appointment.name),
         age: appointment.age !== undefined && appointment.age !== null ? String(appointment.age) : "—",
@@ -662,7 +665,7 @@ export default function IPDManagementPage() {
           setExistingPatientFound(found);
           setNewAdmissionForm((prev) => ({
             ...prev,
-            uhid: (found.reference_number || "CRX0001").replace(/^CH/i, "CRX"),
+            uhid: (found.reference_number || "GNH0001").replace(/^CH/i, "GNH"),
             name: found.name || prev.name,
             age: found.age ? String(found.age) : prev.age,
             sex: (found.sex as any) || prev.sex,
@@ -754,7 +757,7 @@ export default function IPDManagementPage() {
       // EDIT EXISTING RECEIPT
       finalPayment = {
         id: editingAdvanceId,
-        receiptNumber: editingReceiptNumber || `CRX-REC-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`,
+        receiptNumber: editingReceiptNumber || `GNH-REC-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`,
         date: quickPaymentForm.date || new Date().toISOString().split("T")[0],
         amount: amt,
         mode: quickPaymentForm.mode as any,
@@ -803,7 +806,7 @@ export default function IPDManagementPage() {
     // CREATE NEW PAYMENT
     const year = new Date().getFullYear();
     const seq = String(Date.now()).slice(-5);
-    const receiptNum = `CRX-REC-${year}-${seq}`;
+    const receiptNum = `GNH-REC-${year}-${seq}`;
 
     finalPayment = {
       id: `adv_${Date.now()}`,
@@ -855,7 +858,7 @@ export default function IPDManagementPage() {
     setActiveAdmission(adm);
     const targetAdv = specificAdvance || (adm.advances && adm.advances.length > 0 ? adm.advances[adm.advances.length - 1] : {
       id: `adv_${Date.now()}`,
-      receiptNumber: `CRX-REC-${new Date().getFullYear()}-${adm.ipdNumber.replace(/^IPD-\d+-/, '')}`,
+      receiptNumber: `GNH-REC-${new Date().getFullYear()}-${adm.ipdNumber.replace(/^IPD-\d+-/, '')}`,
       date: new Date().toISOString().split("T")[0],
       amount: adm.advances?.reduce((sum, a) => sum + (Number(a.amount) || 0), 0) || 0,
       mode: "Cash",
@@ -913,6 +916,7 @@ export default function IPDManagementPage() {
 
   // Helper to prefill discharge summary from IPD stay details (procedures, active meds, vitals)
   const initDischargeFormForAdmission = (adm: IPDAdmission) => {
+    setActiveAdmission(adm);
     const bill = calculateRunningBill(adm);
     const procSummary = adm.procedures && adm.procedures.length > 0
       ? `Procedures / Surgeries: ${adm.procedures.map((p) => `${p.name} (${p.date}${p.surgeon ? ` by ${p.surgeon}` : ""})`).join("; ")}. `
@@ -925,6 +929,8 @@ export default function IPDManagementPage() {
       : "";
 
     setDischargeForm({
+      admissionDate: adm.admissionDate || new Date().toISOString().split("T")[0],
+      admissionTime: adm.admissionTime || "",
       dischargeDate: adm.dischargeDate || new Date().toISOString().split("T")[0],
       dischargeTime: adm.dischargeTime || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
       conditionAtDischarge: adm.dischargeSummary?.conditionAtDischarge || "Cured / Stable",
@@ -942,7 +948,7 @@ export default function IPDManagementPage() {
 
   // ── OPD PATIENT SELECTOR HANDLER ───────────────────────────
   const handleSelectOpdPatient = (opdPt: any) => {
-    const targetUhid = (opdPt.uhid || "CRX0001").replace(/^CH/i, "CRX");
+    const targetUhid = (opdPt.uhid || "GNH0001").replace(/^CH/i, "GNH");
     setNewAdmissionForm((prev) => ({
       ...prev,
       uhid: targetUhid,
@@ -1300,7 +1306,7 @@ export default function IPDManagementPage() {
     setSubmittingAdmission(true);
     try {
       // 1. Sync or create patient in Convex
-      let uhid = newAdmissionForm.uhid.trim() || "CRX0001";
+      let uhid = newAdmissionForm.uhid.trim() || "GNH0001";
       let patientId: string | undefined;
 
       try {
@@ -1316,10 +1322,10 @@ export default function IPDManagementPage() {
 
         patientId = res ? String(res) : undefined;
         if (existingPatientFound?.reference_number) {
-          uhid = existingPatientFound.reference_number.replace(/^CH/i, "CRX");
+          uhid = existingPatientFound.reference_number.replace(/^CH/i, "GNH");
         } else if (patientId) {
           const pt = await getPatientById(patientId);
-          if (pt?.reference_number) uhid = pt.reference_number.replace(/^CH/i, "CRX");
+          if (pt?.reference_number) uhid = pt.reference_number.replace(/^CH/i, "GNH");
         }
       } catch (e) {
         console.warn("Could not sync patient with Convex directly:", e);
@@ -1339,7 +1345,7 @@ export default function IPDManagementPage() {
       if (Number(newAdmissionForm.initialAdvance) > 0) {
         initialAdvances.push({
           id: `adv_${Date.now()}`,
-          receiptNumber: `CRX-ADV-${year}-${autoSeq}`,
+          receiptNumber: `GNH-ADV-${year}-${autoSeq}`,
           date: newAdmissionForm.admissionDate,
           amount: Number(newAdmissionForm.initialAdvance),
           mode: newAdmissionForm.advancePaymentMode,
@@ -1975,7 +1981,7 @@ export default function IPDManagementPage() {
   // Record Advance Deposit
   const handleRecordAdvance = (admissionId: string) => {
     if (Number(advanceInput.amount) <= 0) return;
-    const receiptNum = `CRX-ADV-${Date.now().toString().slice(-6)}`;
+    const receiptNum = `GNH-ADV-${Date.now().toString().slice(-6)}`;
     const newAdv = {
       id: `adv_${Date.now()}`,
       receiptNumber: receiptNum,
@@ -2185,17 +2191,25 @@ export default function IPDManagementPage() {
     const adm = admissions.find((a) => a.id === admissionId);
     if (!adm) return;
 
-    const billing = calculateRunningBill(adm, dischargeForm.dischargeDate);
+    const effectiveAdm: IPDAdmission = {
+      ...adm,
+      admissionDate: dischargeForm.admissionDate || adm.admissionDate,
+      admissionTime: dischargeForm.admissionTime !== undefined ? dischargeForm.admissionTime : (adm.admissionTime || ""),
+    };
+
+    const billing = calculateRunningBill(effectiveAdm, dischargeForm.dischargeDate);
     const discount = Number(dischargeForm.discount) || 0;
     const netTotal = Math.max(0, billing.grossTotal - discount);
     const finalBalance = netTotal - billing.totalAdvances;
 
-    const finalBillNumber = adm.finalSettlement?.billNumber || `CRX-IPD-${Date.now().toString().slice(-5)}`;
+    const finalBillNumber = adm.finalSettlement?.billNumber || `GNH-IPD-${Date.now().toString().slice(-5)}`;
 
     const updated = admissions.map((item) => {
       if (item.id === admissionId) {
         return {
           ...item,
+          admissionDate: effectiveAdm.admissionDate,
+          admissionTime: effectiveAdm.admissionTime,
           status: "Discharged" as const,
           dischargeDate: dischargeForm.dischargeDate,
           dischargeTime: dischargeForm.dischargeTime,
@@ -2237,13 +2251,19 @@ export default function IPDManagementPage() {
   // Generate & Save Final Hospital Bill for IPD
   const handleGenerateFinalBill = async (admission: IPDAdmission) => {
     try {
-      const billing = calculateRunningBill(admission);
-      const discount = Number(dischargeForm.discount) || (admission.finalSettlement?.discount || 0);
+      const effectiveAdmission: IPDAdmission = {
+        ...admission,
+        admissionDate: dischargeForm.admissionDate || admission.admissionDate,
+        admissionTime: dischargeForm.admissionTime !== undefined ? dischargeForm.admissionTime : (admission.admissionTime || ""),
+      };
+
+      const billing = calculateRunningBill(effectiveAdmission, dischargeForm.dischargeDate);
+      const discount = Number(dischargeForm.discount) || (effectiveAdmission.finalSettlement?.discount || 0);
       const netTotal = Math.max(0, billing.grossTotal - discount);
       const finalBalance = Math.max(0, netTotal - billing.totalAdvances);
 
-      const dischDateStr = `${dischargeForm.dischargeDate || admission.dischargeDate || new Date().toISOString().split("T")[0]} ${dischargeForm.dischargeTime || admission.dischargeTime || ""}`.trim();
-      const admitDateStr = `${admission.admissionDate} ${admission.admissionTime || ""}`.trim();
+      const dischDateStr = `${dischargeForm.dischargeDate || effectiveAdmission.dischargeDate || new Date().toISOString().split("T")[0]} ${dischargeForm.dischargeTime || effectiveAdmission.dischargeTime || ""}`.trim();
+      const admitDateStr = `${effectiveAdmission.admissionDate} ${effectiveAdmission.admissionTime || ""}`.trim();
       const wardStr = `${admission.ward} ${admission.bedNumber}`.trim();
 
       const billItems: any[] = [];
@@ -2345,8 +2365,12 @@ export default function IPDManagementPage() {
         if (item.id === admission.id) {
           return {
             ...item,
+            admissionDate: effectiveAdmission.admissionDate,
+            admissionTime: effectiveAdmission.admissionTime,
+            dischargeDate: dischargeForm.dischargeDate || item.dischargeDate,
+            dischargeTime: dischargeForm.dischargeTime || item.dischargeTime,
             finalSettlement: {
-              billNumber: savedBill?.bill_number || `CRX-IPD-${Date.now().toString().slice(-5)}`,
+              billNumber: savedBill?.bill_number || `GNH-IPD-${Date.now().toString().slice(-5)}`,
               billId: String(activeBillId || ""),
               date: new Date().toISOString().split("T")[0],
               grossTotal: billing.grossTotal,
@@ -2365,6 +2389,57 @@ export default function IPDManagementPage() {
       const updatedAdm = updated.find((a) => a.id === admission.id);
       saveAdmissions(updated, updatedAdm);
       if (updatedAdm) setActiveAdmission(updatedAdm);
+
+      // Prepare all advance receipts + final settlement receipt
+      const receiptsList: Array<{
+        amount: number;
+        payment_date: string;
+        payment_method: string;
+        receipt_number: string;
+        notes?: string;
+      }> = [];
+
+      (admission.advances || []).forEach((adv, idx) => {
+        if (Number(adv.amount) > 0) {
+          receiptsList.push({
+            receipt_number: adv.receiptNumber || `REC-${idx + 1}`,
+            payment_date: adv.date || admission.admissionDate,
+            amount: Number(adv.amount),
+            payment_method: adv.mode || "Cash",
+            notes: adv.notes || "Advance Deposit",
+          });
+        }
+      });
+
+      // If there is a final settlement payment at discharge
+      const settlementMode = dischargeForm.finalPaymentMode || admission.finalSettlement?.paymentMode || "Cash";
+      const settlementPaid = finalBalance > 0 ? finalBalance : (admission.finalSettlement?.balancePaid || 0);
+      if (settlementPaid > 0) {
+        receiptsList.push({
+          receipt_number: savedBill?.bill_number || admission.finalSettlement?.billNumber || "Final Settlement",
+          payment_date: dischargeForm.dischargeDate || admission.dischargeDate || new Date().toISOString().split("T")[0],
+          amount: settlementPaid,
+          payment_method: settlementMode,
+          notes: "Discharge Settlement",
+        });
+      }
+
+      // Sync receipts to Convex payment_transactions table
+      if (activeBillId && receiptsList.length > 0) {
+        try {
+          await recordBillTransactionsMutation({
+            bill_id: String(activeBillId),
+            patient_id: admission.patientId || "WALKIN",
+            transactions: receiptsList,
+          });
+        } catch (e) {
+          console.warn("Could not sync payment transactions to Convex:", e);
+        }
+      }
+
+      // Calculate total paid across all advances and settlement
+      const totalPaidAmount = receiptsList.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+      const remainingBalance = Math.max(0, netTotal - totalPaidAmount);
 
       // Directly open print window for the final bill in A4 matching hospital format
       if (activeBillId && typeof window !== "undefined") {
@@ -2387,8 +2462,9 @@ export default function IPDManagementPage() {
           dischDate: dischDateStr,
           wardName: wardStr,
           paymentCategory: admission.paymentCategory || "General",
-          deposit: String(billing.totalAdvances),
-          balance: String(finalBalance),
+          deposit: String(totalPaidAmount),
+          balance: String(remainingBalance),
+          receipts: encodeURIComponent(JSON.stringify(receiptsList)),
         });
         window.open(`/print-bill?${queryParams.toString()}`, "_blank");
       }
@@ -2518,8 +2594,8 @@ export default function IPDManagementPage() {
           onOpenPatientReceipt={(adm) => handleOpenPatientReceipt(adm)}
           onOpenEditAdmission={(adm) => handleOpenEditAdmission(adm)}
           onOpenDischarge={(adm) => {
-            initDischargeFormForAdmission(adm);
-            setActiveModal("discharge");
+            const targetId = adm.id || (adm as any).admission_id || (adm as any)._id || adm.ipdNumber;
+            router.push(`/admin/ipd/discharge?id=${encodeURIComponent(targetId)}`);
           }}
           onOpenPrintTicket={(adm) => {
             setActiveAdmission(adm);
@@ -2570,9 +2646,8 @@ export default function IPDManagementPage() {
           setSearchQuery={setSearchQuery}
           onOpenEditAdmission={(adm) => handleOpenEditAdmission(adm)}
           onOpenDischargeModal={(adm) => {
-            setActiveAdmission(adm);
-            initDischargeFormForAdmission(adm);
-            setActiveModal("discharge");
+            const targetId = adm.id || (adm as any).admission_id || (adm as any)._id || adm.ipdNumber;
+            router.push(`/admin/ipd/discharge?id=${encodeURIComponent(targetId)}`);
           }}
           onGenerateFinalBill={(adm) => handleGenerateFinalBill(adm)}
           onOpenPatientReceipt={(adm) => handleOpenPatientReceipt(adm)}
@@ -2661,6 +2736,7 @@ export default function IPDManagementPage() {
           onOpenRecordPayment={handleOpenRecordPayment}
           onOpenPatientReceipt={handleOpenPatientReceipt}
           onProceedToDischarge={(adm) => {
+            setActiveAdmission(adm);
             initDischargeFormForAdmission(adm);
             setActiveModal("discharge");
           }}

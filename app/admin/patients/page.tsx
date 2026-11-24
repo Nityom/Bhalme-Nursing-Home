@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { getAllPrescriptions, Prescription as PrescriptionType, deletePrescription } from '@/services/prescription';
-import { deletePatient, getPatients, migratePatientsToCRX, updatePatient, createPatient, getPatientByPhoneNumber } from '@/services/patients';
+import { deletePatient, getPatients, migratePatientsToGNH, updatePatient, createPatient, getPatientByPhoneNumber } from '@/services/patients';
 import { getAll as getAllBills } from '@/services/bills';
 import { Patient } from '@/types/patient';
 import Link from 'next/link';
@@ -60,7 +60,7 @@ interface PatientWithPrescriptions extends Patient {
 const ViewPatients = () => {
   const [patients, setPatients] = useState<PatientWithPrescriptions[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<PatientWithPrescriptions[]>([]);
-  const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<string>('All');
+  const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<'All' | 'Dr. Rajesh Gandhi' | 'Dr. Rajesh Gandhi'>('All');
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +101,7 @@ const ViewPatients = () => {
       email: (patient as any).email || '',
       age: patient.age,
       gender: patient.sex,
-      referenceNumber: (patient.reference_number || targetRx.reference_number || '').replace(/^CH/i, 'CRX'),
+      referenceNumber: (patient.reference_number || targetRx.reference_number || '').replace(/^CH/i, 'GNH'),
       doctorName: targetRx.doctor_name || 'Dr. Rajesh Gandhi',
       prescriptionDate: targetRx.prescription_date || targetRx.date,
       chiefComplaint: targetRx.chief_complaint || targetRx.cc,
@@ -239,7 +239,6 @@ const ViewPatients = () => {
 
       // First, get all patients from the database
       console.log('Fetching patients...');
-      migratePatientsToCRX().catch(() => { });
       const dbPatients = await getPatients();
       if (!dbPatients) {
         throw new Error('No patients data received');
@@ -249,7 +248,7 @@ const ViewPatients = () => {
       const dbPatientByRef = new Map(
         dbPatients
           .filter(p => p.reference_number)
-          .map(p => [(p.reference_number || '').replace(/^CH/i, 'CRX').trim().toUpperCase(), p])
+          .map(p => [(p.reference_number || '').replace(/^CH/i, 'GNH').trim().toUpperCase(), p])
       );
       const dbPatientByPhoneName = new Map(
         dbPatients.map(p => [`${(p.phone_number || '').replace(/\D/g, '').slice(-10)}_${(p.name || '').trim().toLowerCase()}`, p])
@@ -262,23 +261,23 @@ const ViewPatients = () => {
       prescriptionsWithBills.forEach(prescription => {
         let cleanPhone = (prescription.phone_number || '').replace(/\D/g, '').slice(-10);
         let rxName = (prescription.patient_name || '').trim();
-        let refNum = (prescription.reference_number || '').replace(/^CH/i, 'CRX').trim();
+        let refNum = (prescription.reference_number || '').replace(/^CH/i, 'GNH').trim();
 
         const isSamiksha =
           cleanPhone === '9665651439' ||
           cleanPhone === '966561439' ||
-          refNum === 'CRX0069' ||
-          refNum === 'CRX4469' ||
-          refNum === 'CRX7494' ||
+          refNum === 'GNH0069' ||
+          refNum === 'GNH4469' ||
+          refNum === 'GNH7494' ||
           (rxName.toLowerCase().includes('samiksha') && (rxName.toLowerCase().includes('varnerkar') || rxName.toLowerCase().includes('saurangpate')));
 
         if (isSamiksha) {
           cleanPhone = '9665651439';
           rxName = 'samiksha varnerkar';
-          refNum = 'CRX0069';
+          refNum = 'GNH0069';
           prescription.patient_name = 'samiksha varnerkar';
           prescription.phone_number = '9665651439';
-          prescription.reference_number = 'CRX0069';
+          prescription.reference_number = 'GNH0069';
           prescription.sex = 'Female';
           prescription.age = '21';
         }
@@ -307,7 +306,7 @@ const ViewPatients = () => {
 
           patientMap.set(key, {
             id: existingPatient?.id || 'TMP-' + Math.random().toString(36).substring(2, 7), // Use DB ID if exists, or create a temporary ID
-            reference_number: existingPatient?.reference_number?.replace(/^CH/i, 'CRX') || refNum,
+            reference_number: existingPatient?.reference_number?.replace(/^CH/i, 'GNH') || refNum,
             name: rxName,
             phone_number: cleanPhone || 'Unknown',
             age: validAge,
@@ -338,7 +337,7 @@ const ViewPatients = () => {
               if (!existingPatient) existingPatient = dbPatientByPhoneName.get(`${cleanPhone}_${rxName.toLowerCase()}`);
               if (existingPatient) {
                 patient.id = existingPatient.id;
-                patient.reference_number = existingPatient.reference_number?.replace(/^CH/i, 'CRX');
+                patient.reference_number = existingPatient.reference_number?.replace(/^CH/i, 'GNH');
                 patient.created_at = existingPatient.created_at;
                 patient.updated_at = existingPatient.updated_at;
               }
@@ -353,20 +352,20 @@ const ViewPatients = () => {
       dbPatients.forEach((dbp) => {
         let cleanPhone = (dbp.phone_number || '').replace(/\D/g, '').slice(-10);
         let ptName = (dbp.name || '').trim();
-        let refNum = (dbp.reference_number || '').replace(/^CH/i, 'CRX').trim();
+        let refNum = (dbp.reference_number || '').replace(/^CH/i, 'GNH').trim();
 
         const isSamiksha =
           cleanPhone === '9665651439' ||
           cleanPhone === '966561439' ||
-          refNum === 'CRX0069' ||
-          refNum === 'CRX4469' ||
-          refNum === 'CRX7494' ||
+          refNum === 'GNH0069' ||
+          refNum === 'GNH4469' ||
+          refNum === 'GNH7494' ||
           (ptName.toLowerCase().includes('samiksha') && (ptName.toLowerCase().includes('varnerkar') || ptName.toLowerCase().includes('saurangpate')));
 
         if (isSamiksha) {
           cleanPhone = '9665651439';
           ptName = 'samiksha varnerkar';
-          refNum = 'CRX0069';
+          refNum = 'GNH0069';
         }
 
         const key = refNum
@@ -381,7 +380,7 @@ const ViewPatients = () => {
         if (!patientMap.has(key)) {
           patientMap.set(key, {
             id: dbp.id,
-            reference_number: refNum || dbp.reference_number?.replace(/^CH/i, 'CRX'),
+            reference_number: refNum || dbp.reference_number?.replace(/^CH/i, 'GNH'),
             name: ptName,
             phone_number: cleanPhone || '—',
             age: validAge,
@@ -765,14 +764,31 @@ const ViewPatients = () => {
               type="button"
               onClick={() => setSelectedDoctorFilter('Dr. Rajesh Gandhi')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${selectedDoctorFilter === 'Dr. Rajesh Gandhi'
-                  ? 'bg-sky-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-sky-700 hover:bg-sky-50'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50'
                 }`}
             >
               <span>Dr. Rajesh Gandhi</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedDoctorFilter === 'Dr. Rajesh Gandhi' ? 'bg-white/25 text-white' : 'bg-sky-100 text-sky-800'
+              <span className="text-[10px] opacity-80">(Ortho)</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedDoctorFilter === 'Dr. Rajesh Gandhi' ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-800'
                 }`}>
-                {patients.length}
+                {orthoCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedDoctorFilter('Dr. Rajesh Gandhi')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${selectedDoctorFilter === 'Dr. Rajesh Gandhi'
+                  ? 'bg-pink-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-pink-700 hover:bg-pink-50'
+                }`}
+            >
+              <span>Dr. Rajesh Gandhi</span>
+              <span className="text-[10px] opacity-80">(Gynae)</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedDoctorFilter === 'Dr. Rajesh Gandhi' ? 'bg-white/25 text-white' : 'bg-pink-100 text-pink-800'
+                }`}>
+                {gynaeCount}
               </span>
             </button>
           </div>
@@ -940,7 +956,7 @@ const ViewPatients = () => {
                         {/* Reference No */}
                         <td className="px-3.5 py-3 whitespace-nowrap">
                           <span className="font-mono text-xs font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                            {(patient.reference_number || '-').replace(/^CH/i, 'CRX')}
+                            {(patient.reference_number || '-').replace(/^CH/i, 'GNH')}
                           </span>
                         </td>
 
@@ -1009,7 +1025,7 @@ const ViewPatients = () => {
                             </button>
 
                             <Link
-                              href={`/admin/prescription?patientName=${encodeURIComponent(patient.name)}&phoneNumber=${encodeURIComponent(patient.phone_number)}&phone=${encodeURIComponent(patient.phone_number)}&reference_number=${encodeURIComponent((patient.reference_number || '').replace(/^CH/i, 'CRX'))}&uhid=${encodeURIComponent((patient.reference_number || '').replace(/^CH/i, 'CRX'))}&age=${patient.age}&sex=${patient.sex}&doctorName=${encodeURIComponent(latestDoc)}&medicalHistory=${encodeURIComponent(patient.prescriptions[0]?.medical_history || '')}`}
+                              href={`/admin/prescription?patientName=${encodeURIComponent(patient.name)}&phoneNumber=${encodeURIComponent(patient.phone_number)}&phone=${encodeURIComponent(patient.phone_number)}&reference_number=${encodeURIComponent((patient.reference_number || '').replace(/^CH/i, 'GNH'))}&uhid=${encodeURIComponent((patient.reference_number || '').replace(/^CH/i, 'GNH'))}&age=${patient.age}&sex=${patient.sex}&doctorName=${encodeURIComponent(latestDoc)}&medicalHistory=${encodeURIComponent(patient.prescriptions[0]?.medical_history || '')}`}
                             >
                               <button
                                 type="button"
@@ -1398,7 +1414,7 @@ const ViewPatients = () => {
                         <span>Email Latest Rx</span>
                       </button>
                     )}
-                    <Link href={`/admin/prescription?patientName=${encodeURIComponent(selectedPatient.name)}&phoneNumber=${encodeURIComponent(selectedPatient.phone_number)}&phone=${encodeURIComponent(selectedPatient.phone_number)}&reference_number=${encodeURIComponent((selectedPatient.reference_number || '').replace(/^CH/i, 'CRX'))}&uhid=${encodeURIComponent((selectedPatient.reference_number || '').replace(/^CH/i, 'CRX'))}&age=${selectedPatient.age}&sex=${selectedPatient.sex}&medicalHistory=${encodeURIComponent(selectedPatient.prescriptions[0]?.medical_history || '')}`}>
+                    <Link href={`/admin/prescription?patientName=${encodeURIComponent(selectedPatient.name)}&phoneNumber=${encodeURIComponent(selectedPatient.phone_number)}&phone=${encodeURIComponent(selectedPatient.phone_number)}&reference_number=${encodeURIComponent((selectedPatient.reference_number || '').replace(/^CH/i, 'GNH'))}&uhid=${encodeURIComponent((selectedPatient.reference_number || '').replace(/^CH/i, 'GNH'))}&age=${selectedPatient.age}&sex=${selectedPatient.sex}&medicalHistory=${encodeURIComponent(selectedPatient.prescriptions[0]?.medical_history || '')}`}>
                       <button
                         type="button"
                         className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"

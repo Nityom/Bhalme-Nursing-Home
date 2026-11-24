@@ -11,72 +11,67 @@ export const create = mutation({
         address: v.optional(v.string()),
         email: v.optional(v.string()),
         whatsapp_number: v.optional(v.string()),
-        reference_number: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         // Check if patient exists with this phone number AND matching name
         const cleanName = args.name.trim().toLowerCase();
-        if (args.phone_number && args.phone_number.trim()) {
-            const candidates = await ctx.db
-                .query("patients")
-                .withIndex("by_phone", (q) => q.eq("phone_number", args.phone_number))
-                .collect();
+        const candidates = await ctx.db
+            .query("patients")
+            .withIndex("by_phone", (q) => q.eq("phone_number", args.phone_number))
+            .collect();
 
-            const existingPatient = candidates.find(
-                (p) => p.name.trim().toLowerCase() === cleanName
-            );
+        const existingPatient = candidates.find(
+            (p) => p.name.trim().toLowerCase() === cleanName
+        );
 
-            if (existingPatient) {
-                const patches: Record<string, any> = {};
-                if (args.email && args.email.trim() && args.email.trim() !== existingPatient.email) {
-                    patches.email = args.email.trim();
-                }
-                if (args.address && args.address.trim() && !existingPatient.address) {
-                    patches.address = args.address.trim();
-                }
-                if (Object.keys(patches).length > 0) {
-                    await ctx.db.patch(existingPatient._id, patches);
-                }
-                return existingPatient._id;
+        if (existingPatient) {
+            const patches: Record<string, any> = {};
+            if (args.email && args.email.trim() && args.email.trim() !== existingPatient.email) {
+                patches.email = args.email.trim();
             }
+            if (args.address && args.address.trim() && !existingPatient.address) {
+                patches.address = args.address.trim();
+            }
+            if (Object.keys(patches).length > 0) {
+                await ctx.db.patch(existingPatient._id, patches);
+            }
+            return existingPatient._id;
         }
 
-        let reference_number = args.reference_number?.trim();
-        if (!reference_number) {
-            // Use reference_counter to assign the next reference number efficiently without scanning the entire patients table
-            let counter = await ctx.db
-                .query("reference_counter")
-                .withIndex("by_counter_id", (q) => q.eq("counter_id", 1))
-                .first();
-            
-            let nextNumber: number;
-            if (counter && typeof counter.current_number === "number") {
-                nextNumber = counter.current_number + 1;
-                await ctx.db.patch(counter._id, { current_number: nextNumber });
-            } else {
-                const recentPatients = await ctx.db.query("patients").order("desc").take(50);
-                let maxExisting = 0;
-                for (const p of recentPatients) {
-                    if (p.reference_number) {
-                        const match = p.reference_number.match(/\d+/);
-                        if (match) {
-                            const num = parseInt(match[0], 10);
-                            if (num > maxExisting) maxExisting = num;
-                        }
+        // Use reference_counter to assign the next reference number efficiently without scanning the entire patients table
+        let counter = await ctx.db
+            .query("reference_counter")
+            .withIndex("by_counter_id", (q) => q.eq("counter_id", 1))
+            .first();
+        
+        let nextNumber: number;
+        if (counter && typeof counter.current_number === "number") {
+            nextNumber = counter.current_number + 1;
+            await ctx.db.patch(counter._id, { current_number: nextNumber });
+        } else {
+            // Counter not yet initialized: inspect only the most recent patients to find the highest number
+            const recentPatients = await ctx.db.query("patients").order("desc").take(50);
+            let maxExisting = 2; // Default starting reference
+            for (const p of recentPatients) {
+                if (p.reference_number) {
+                    const match = p.reference_number.match(/\d+/);
+                    if (match) {
+                        const num = parseInt(match[0], 10);
+                        if (num > maxExisting) maxExisting = num;
                     }
                 }
-                nextNumber = maxExisting + 1;
-                await ctx.db.insert("reference_counter", { counter_id: 1, current_number: nextNumber });
             }
-            reference_number = `BNH${String(nextNumber).padStart(4, "0")}`;
+            nextNumber = maxExisting + 1;
+            await ctx.db.insert("reference_counter", { counter_id: 1, current_number: nextNumber });
         }
+        const reference_number = `CRX${String(nextNumber).padStart(4, "0")}`;  
 
         const newPatientId = await ctx.db.insert("patients", {
             reference_number,
             name: args.name,
             age: args.age,
             sex: args.sex,
-            phone_number: args.phone_number || "",
+            phone_number: args.phone_number,
             address: args.address,
             email: args.email,
             whatsapp_number: args.whatsapp_number,
@@ -89,7 +84,7 @@ export const getNextReferenceNumber = query({
     args: {},
     handler: async (ctx) => {
         const allPatients = await ctx.db.query("patients").collect();
-        let maxExisting = 0;
+        let maxExisting = 2; // Base minimum since CRX0001 and CRX0002 already exist
         for (const p of allPatients) {
             if (p.reference_number) {
                 const match = p.reference_number.match(/\d+/);
@@ -107,7 +102,7 @@ export const getNextReferenceNumber = query({
         if (counter && counter.current_number >= next) {
             next = counter.current_number + 1;
         }
-        return `BNH${String(next).padStart(4, "0")}`;
+        return `CRX${String(next).padStart(4, "0")}`;
     },
 });
 
@@ -189,7 +184,7 @@ export const getByReference = query({
             .first();
         if (alt2) return alt2;
 
-        const all = await ctx.db.query("patients").collect();
+        const all = await ctx.db.query("patients").order("desc").take(100);
         return all.find((p) => {
             const pRef = (p.reference_number || "").trim().toUpperCase().replace(/^CH/i, 'CRX');
             return pRef === normalized;
@@ -198,22 +193,71 @@ export const getByReference = query({
 });
 
 export const list = query({
-    args: {},
-    handler: async (ctx) => {
-        return await ctx.db.query("patients").order("desc").take(100);
+    args: { limit: v.optional(v.number()) },
+    handler: async (ctx, args) => {
+        const limit = args.limit && args.limit > 0 ? args.limit : 100;
+        return await ctx.db.query("patients").order("desc").take(limit);
     },
 });
 
 export const search = query({
     args: { searchTerm: v.string() },
     handler: async (ctx, args) => {
-        const term = args.searchTerm.toLowerCase();
-        const allPatients = await ctx.db.query("patients").order("desc").take(150);
-        return allPatients.filter((p) =>
-            p.name.toLowerCase().includes(term) ||
-            p.phone_number.includes(term) ||
-            (p.reference_number || "").toLowerCase().includes(term)
-        );
+        const rawTerm = args.searchTerm.trim();
+        if (!rawTerm) {
+            return await ctx.db.query("patients").order("desc").take(50);
+        }
+
+        const upper = rawTerm.toUpperCase();
+        // 1. Direct index lookup for reference numbers (e.g. CRX0115, CH0115) - Reads 1 row
+        if (upper.startsWith("CRX") || upper.startsWith("CH")) {
+            const byRef = await ctx.db
+                .query("patients")
+                .withIndex("by_reference", (q) => q.eq("reference_number", upper))
+                .first();
+            if (byRef) return [byRef];
+
+            const altRef = upper.startsWith("CH") ? upper.replace(/^CH/i, "CRX") : upper.replace(/^CRX/i, "CH");
+            const altMatch = await ctx.db
+                .query("patients")
+                .withIndex("by_reference", (q) => q.eq("reference_number", altRef))
+                .first();
+            if (altMatch) return [altMatch];
+        }
+
+        // 2. Direct index lookup for phone numbers (e.g. 10 digits) - Reads 1 row
+        const digits = rawTerm.replace(/\D/g, "");
+        if (digits.length >= 10) {
+            const byPhone = await ctx.db
+                .query("patients")
+                .withIndex("by_phone", (q) => q.eq("phone_number", digits))
+                .collect();
+            if (byPhone.length > 0) return byPhone;
+        }
+
+        // 3. Convex Search Index lookup (zero table scan)
+        try {
+            const indexed = await ctx.db
+                .query("patients")
+                .withSearchIndex("search_name", (q) => q.search("name", rawTerm))
+                .take(30);
+            if (indexed.length > 0) {
+                return indexed;
+            }
+        } catch {
+            // Search index building or fallback
+        }
+
+        // 4. Substring fallback across patients
+        const term = rawTerm.toLowerCase();
+        const allPatients = await ctx.db.query("patients").collect();
+        return allPatients
+            .filter((p) =>
+                p.name.toLowerCase().includes(term) ||
+                p.phone_number.includes(term) ||
+                (p.reference_number || "").toLowerCase().includes(term)
+            )
+            .slice(0, 50);
     },
 });
 
@@ -340,7 +384,7 @@ export const mergeSamikshaToCRX0069 = mutation({
                     phone: "9665651439",
                     address: "waigao",
                     age: 21,
-                    doctor_name: "Dr. Nitin Bhalme",
+                    doctor_name: "Dr. Rajesh Gandhi",
                 });
                 for (let i = 1; i < items.length; i++) {
                     await ctx.db.delete(items[i]._id);
@@ -361,7 +405,7 @@ export const mergeSamikshaToCRX0069 = mutation({
                 age: "21",
                 sex: "Female",
                 address: "waigao",
-                doctor: "Dr. Nitin Bhalme",
+                doctor: "Dr. Rajesh Gandhi",
                 department: "Obstetrics & Gynaecology",
             });
             for (let i = 1; i < opdMatches.length; i++) {

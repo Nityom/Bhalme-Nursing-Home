@@ -138,7 +138,7 @@ export default function IpdSelectOpdPatientModal({
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800">
-                        Token #{pt.token} • {pt.uhid || "CRX..."}
+                        Token #{pt.token} • {pt.uhid || "GNH..."}
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
                         {pt.registeredAt ? pt.registeredAt.slice(0, 10) : "OPD"}

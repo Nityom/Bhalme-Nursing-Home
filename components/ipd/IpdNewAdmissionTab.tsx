@@ -190,7 +190,7 @@ export default function IpdNewAdmissionTab({
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-mono text-[11px] font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
-                            Token #{opdPt.token} • {opdPt.uhid || "CRX..."}
+                            Token #{opdPt.token} • {opdPt.uhid || "GNH..."}
                           </span>
                           <span className="text-[10px] font-medium text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
                             {opdPt.doctor ? opdPt.doctor.replace("Dr. ", "") : "OPD"}
@@ -307,7 +307,7 @@ export default function IpdNewAdmissionTab({
                 type="text"
                 value={newAdmissionForm.uhid}
                 onChange={(e) => setNewAdmissionForm({ ...newAdmissionForm, uhid: e.target.value })}
-                placeholder="CRX0001 (Auto-generated)"
+                placeholder="GNH0001 (Auto-generated)"
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono font-bold text-slate-800 focus:outline-none"
               />
             </div>

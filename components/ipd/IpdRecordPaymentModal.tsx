@@ -45,7 +45,7 @@ export function IpdRecordPaymentModal({
             </span>
             <div>
               <h2 className="text-base font-bold text-slate-900">
-                {editingAdvanceId ? `Edit Payment Receipt — ${editingReceiptNumber || 'CRX-REC'}` : "Record Inpatient Payment"}
+                {editingAdvanceId ? `Edit Payment Receipt — ${editingReceiptNumber || 'GNH-REC'}` : "Record Inpatient Payment"}
               </h2>
               <p className="text-xs text-slate-500">
                 {editingAdvanceId ? "Modify amount, mode, date, or notes for this receipt" : "Record payment and give small receipt slip immediately"}

@@ -13,42 +13,41 @@ const formatPatient = (p: any): Patient => ({
     ...p,
     id: p._id,
     age: Number(p.age),
-    reference_number: (p.reference_number || '').replace(/^CH/i, 'CRX'),
+    reference_number: (p.reference_number || '').replace(/^CH/i, 'GNH'),
 });
 
-export const migratePatientsToCRX = async () => {
+export const migratePatientsToGNH = async () => {
     try {
         await convex.mutation(api.patients.migratePrefixToCRX, {});
     } catch (e) {
-        console.warn("Migration to CRX skipped:", e);
+        console.warn("Migration to GNH skipped:", e);
     }
 };
 
 export const getNextPatientReference = async (): Promise<string> => {
     try {
         const next = await convex.query(api.patients.getNextReferenceNumber, {});
-        return next || 'BNH0001';
+        return next || 'GNH0003';
     } catch (e) {
-        return 'BNH0001';
+        return 'GNH0003';
     }
 };
 
-export const generateRandomPatientReference = (): string => {
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    return `BNH${rand}`;
-};
-
-export const createPatient = async (patient: Omit<Patient, 'id' | 'created_at' | 'updated_at' | 'reference_number'> & { reference_number?: string }) => {
+export const createPatient = async (patient: Omit<Patient, 'id' | 'created_at' | 'updated_at' | 'reference_number'>) => {
     const data = await convex.mutation(api.patients.create, {
         name: patient.name,
         age: String(patient.age),
         sex: patient.sex as "Male" | "Female" | "Other",
-        phone_number: patient.phone_number || "",
+        phone_number: patient.phone_number,
         address: (patient as any).address,
         email: (patient as any).email,
         whatsapp_number: (patient as any).whatsapp_number,
-        reference_number: (patient as any).reference_number,
     });
+    if (typeof window !== 'undefined') {
+        try {
+            localStorage.removeItem(PATIENTS_CACHE_KEY);
+        } catch {}
+    }
     return data;
 }
 
@@ -87,9 +86,29 @@ export const getOrCreatePatient = async (patient: Omit<Patient, 'id' | 'created_
     return formatPatient(newPatient!);
 }
 
-export const getPatients = async (): Promise<Patient[]> => {
-    const data = await convex.query(api.patients.list);
-    return data.map(formatPatient);
+const PATIENTS_CACHE_KEY = 'bhalme_patients_cache_v1';
+const PATIENTS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes cache
+
+export const getPatients = async (forceRefresh = false): Promise<Patient[]> => {
+    if (!forceRefresh && typeof window !== 'undefined') {
+        try {
+            const cached = localStorage.getItem(PATIENTS_CACHE_KEY);
+            if (cached) {
+                const { timestamp, data } = JSON.parse(cached);
+                if (Date.now() - timestamp < PATIENTS_CACHE_TTL && Array.isArray(data) && data.length > 0) {
+                    return data;
+                }
+            }
+        } catch {}
+    }
+    const data = await convex.query(api.patients.list, {});
+    const formatted = data.map(formatPatient);
+    if (typeof window !== 'undefined') {
+        try {
+            localStorage.setItem(PATIENTS_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: formatted }));
+        } catch {}
+    }
+    return formatted;
 };
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {

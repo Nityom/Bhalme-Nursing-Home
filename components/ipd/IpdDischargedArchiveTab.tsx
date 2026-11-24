@@ -162,7 +162,7 @@ export default function IpdDischargedArchiveTab({
                 selectedDoctor === "Dr. Rajesh Gandhi" ? "bg-emerald-600 text-white font-bold shadow-2xs" : "text-slate-600 hover:text-emerald-700"
               }`}
             >
-              Dr. Rajesh Gandhi
+              Dr. Rajesh
             </button>
             <button
               type="button"
@@ -171,7 +171,7 @@ export default function IpdDischargedArchiveTab({
                 selectedDoctor === "Dr. Rajesh Gandhi" ? "bg-pink-600 text-white font-bold shadow-2xs" : "text-slate-600 hover:text-pink-700"
               }`}
             >
-              Dr. Rajesh Gandhi
+              Dr. Shillpa
             </button>
           </div>
         </div>

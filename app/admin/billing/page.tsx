@@ -172,11 +172,11 @@ export default function HospitalBillingPage() {
       const qPhone = params.get("phoneNumber") || params.get("phone");
       let qUhid = params.get("uhid") || params.get("reference_number") || params.get("reference");
       if (qUhid) {
-        qUhid = qUhid.replace(/^CH/i, "CRX");
-        if (qName?.toLowerCase() === "testing" && (qUhid === "CRX0001" || qUhid === "CH0001")) {
-          qUhid = "CRX0002";
-        } else if (qUhid === "CRX0002" && qName?.toLowerCase() !== "testing") {
-          qUhid = "CRX0003";
+        qUhid = qUhid.replace(/^CH/i, "GNH");
+        if (qName?.toLowerCase() === "testing" && (qUhid === "GNH0001" || qUhid === "CH0001")) {
+          qUhid = "GNH0002";
+        } else if (qUhid === "GNH0002" && qName?.toLowerCase() !== "testing") {
+          qUhid = "GNH0003";
         }
       }
       const qAge = params.get("age");
@@ -482,7 +482,7 @@ export default function HospitalBillingPage() {
       try {
         const found = await getPatientByPhoneNumber(phoneStr.trim(), opdPatient.name?.trim());
         if (found) {
-          const uhidClean = (found.reference_number || "CRX0001").replace(/^CH/i, "CRX");
+          const uhidClean = (found.reference_number || "GNH0001").replace(/^CH/i, "GNH");
           let isFollowUp = false;
           try {
             const pastRx = await getPrescriptionsByPatient(uhidClean);
@@ -631,7 +631,7 @@ export default function HospitalBillingPage() {
 
     setOpdSubmitting(true);
     try {
-      const patientRef = opdPatient.uhid || `CRX${Math.floor(1000 + Math.random() * 9000)}`;
+      const patientRef = opdPatient.uhid || `GNH${Math.floor(1000 + Math.random() * 9000)}`;
 
       // 1. Check if an existing bill exists for this linked prescription or patient today
       let targetExistingBill: any = null;
@@ -711,7 +711,7 @@ export default function HospitalBillingPage() {
       }
 
       const activeBillId = savedBillResult?.id || savedBillResult?._id || targetExistingBill?.id;
-      const billNumber = savedBillResult?.bill_number || targetExistingBill?.bill_number || `CRX-OPD-${Date.now().toString().slice(-4)}`;
+      const billNumber = savedBillResult?.bill_number || targetExistingBill?.bill_number || `GNH-OPD-${Date.now().toString().slice(-4)}`;
 
       // Record payment transaction for installment history if amount was paid
       if (opdPaidAmount > 0 && activeBillId) {

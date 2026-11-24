@@ -5,28 +5,44 @@ export const list = query({
   args: {
     status: v.optional(v.string()),
     doctor: v.optional(v.string()),
+    date: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const limit = args.limit || 50;
     let items;
 
-    if (args.status && args.status !== "ALL") {
+    if (args.date) {
+      // Direct indexed lookup using by_registered_at B-tree index
+      const startIso = `${args.date}T00:00:00.000Z`;
+      const endIso = `${args.date}T23:59:59.999Z`;
+      items = await ctx.db
+        .query("opd_queue")
+        .withIndex("by_registered_at", (q) =>
+          q.gte("registeredAt", startIso).lte("registeredAt", endIso)
+        )
+        .collect();
+    } else if (args.status && args.status !== "ALL") {
+      const limit = args.limit || 100;
       items = await ctx.db
         .query("opd_queue")
         .withIndex("by_status", (q) => q.eq("status", args.status!))
         .order("desc")
         .take(limit);
     } else {
+      const limit = args.limit || 50;
       items = await ctx.db.query("opd_queue").order("desc").take(limit);
     }
 
     if (args.doctor && args.doctor !== "ALL") {
-      const qDoc = args.doctor.toLowerCase();
-      items = items.filter((item) => (item.doctor || "").toLowerCase().includes(qDoc));
+      const qDoc = args.doctor.toLowerCase().replace(/l+/g, "l");
+      items = items.filter((item) => (item.doctor || "").toLowerCase().replace(/l+/g, "l").includes(qDoc));
     }
 
-    return items.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    return items.sort((a, b) => {
+      const timeA = new Date(a.registeredAt || a._creationTime || 0).getTime();
+      const timeB = new Date(b.registeredAt || b._creationTime || 0).getTime();
+      return timeB - timeA;
+    });
   },
 });
 
@@ -114,27 +130,37 @@ export const upsert = mutation({
     // clean up any corresponding scheduled appointment placeholder (appointment_*)
     // so no patient is duplicated in the database or queue.
     if (args.id.startsWith("opd_")) {
-      const cleanPhone = (args.phone || "").replace(/\D/g, "").slice(-10);
-      const cleanName = (args.name || "").trim().toLowerCase();
-      const targetDate = (args.registeredAt || "").split("T")[0];
+      // 1. Direct O(1) indexed lookup if appointmentId is explicitly provided
+      if (args.appointmentId) {
+        const placeholder = await ctx.db
+          .query("opd_queue")
+          .withIndex("by_queue_id", (q) => q.eq("queue_id", `appointment_${args.appointmentId}`))
+          .first();
+        if (placeholder) {
+          await ctx.db.delete(placeholder._id);
+        }
+      } else {
+        const cleanPhone = (args.phone || "").replace(/\D/g, "").slice(-10);
+        const cleanName = (args.name || "").trim().toLowerCase();
+        const targetDate = (args.registeredAt || "").split("T")[0];
 
-      const allPlaceholders = await ctx.db
-        .query("opd_queue")
-        .withIndex("by_status", (q) => q.eq("status", "Waiting"))
-        .collect();
+        if (cleanPhone.length === 10) {
+          const recentPlaceholders = await ctx.db
+            .query("opd_queue")
+            .withIndex("by_status", (q) => q.eq("status", "Waiting"))
+            .order("desc")
+            .take(20);
 
-      for (const item of allPlaceholders) {
-        if (!item.queue_id || !item.queue_id.startsWith("appointment_")) continue;
-        const pApptId = item.appointmentId ? String(item.appointmentId) : "";
-        const pPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
-        const pName = (item.name || "").trim().toLowerCase();
-        const pDate = (item.registeredAt || "").split("T")[0];
+          for (const item of recentPlaceholders) {
+            if (!item.queue_id || !item.queue_id.startsWith("appointment_")) continue;
+            const pPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
+            const pName = (item.name || "").trim().toLowerCase();
+            const pDate = (item.registeredAt || "").split("T")[0];
 
-        const matchAppt = args.appointmentId && pApptId && args.appointmentId === pApptId;
-        const matchPhoneAndName = cleanPhone.length === 10 && pPhone === cleanPhone && (cleanName === pName || pDate === targetDate);
-
-        if (matchAppt || matchPhoneAndName) {
-          await ctx.db.delete(item._id);
+            if (pPhone === cleanPhone && (cleanName === pName || pDate === targetDate)) {
+              await ctx.db.delete(item._id);
+            }
+          }
         }
       }
     }
@@ -149,16 +175,50 @@ export const updateStatus = mutation({
     status: v.string(),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
+    let existing: any = await ctx.db
       .query("opd_queue")
       .withIndex("by_queue_id", (q) => q.eq("queue_id", args.queue_id))
       .first();
+
+    if (!existing) {
+      try {
+        existing = await ctx.db.get(args.queue_id as any);
+      } catch {}
+    }
+
+    if (!existing) {
+      existing = await ctx.db
+        .query("opd_queue")
+        .filter((q) => q.eq(q.field("appointmentId"), args.queue_id))
+        .first();
+    }
+
+    if (!existing && !args.queue_id.startsWith("appointment_")) {
+      existing = await ctx.db
+        .query("opd_queue")
+        .withIndex("by_queue_id", (q) => q.eq("queue_id", `appointment_${args.queue_id}`))
+        .first();
+    }
 
     if (existing) {
       await ctx.db.patch(existing._id, {
         status: args.status,
         updated_at: Date.now(),
       });
+
+      // If marked Completed, also sync appointment if applicable
+      if (args.status === "Completed") {
+        const apptId = existing.appointmentId || (existing.queue_id?.startsWith("appointment_") ? existing.queue_id.replace("appointment_", "") : null);
+        if (apptId) {
+          try {
+            const appt: any = await ctx.db.get(apptId as any);
+            if (appt && appt.status !== "COMPLETED") {
+              await ctx.db.patch(appt._id, { status: "COMPLETED" });
+            }
+          } catch {}
+        }
+      }
+
       return true;
     }
     return false;
@@ -190,7 +250,7 @@ export const remove = mutation({
 
       if (apptId) {
         try {
-          const appt = await ctx.db.get(apptId as any);
+          const appt: any = await ctx.db.get(apptId as any);
           if (appt) {
             await ctx.db.patch(appt._id, { status: "CANCELLED" });
           }
@@ -237,7 +297,7 @@ export const clearAll = mutation({
 
       if (apptId) {
         try {
-          const appt = await ctx.db.get(apptId as any);
+          const appt: any = await ctx.db.get(apptId as any);
           if (appt) {
             await ctx.db.patch(appt._id, { status: "CANCELLED" });
           }
@@ -278,7 +338,7 @@ export const syncLocalItems = mutation({
           address: item.address,
           email: item.email,
           whatsapp_number: item.whatsapp_number,
-          doctor: item.doctor || "Dr. Nitin Bhalme",
+          doctor: item.doctor || "Dr. Rajesh Gandhi",
           department: item.department || "General",
           priority: item.priority || "Normal",
           visitType: item.visitType || "New Registration",

@@ -2,7 +2,7 @@ import { ConvexHttpClient } from "convex/browser";
 // @ts-ignore
 import { api } from "@/convex/_generated/api";
 
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://dashing-salamander-340.convex.cloud";
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://majestic-setter-702.convex.cloud";
 const convexClient = new ConvexHttpClient(convexUrl);
 
 const STORAGE_KEY = "bhalme_ipd_admissions_v1";

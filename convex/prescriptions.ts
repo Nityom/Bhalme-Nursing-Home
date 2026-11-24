@@ -317,6 +317,9 @@ export const create = mutation({
             await recordComplaintsToCatalog(ctx, args.chief_complaint);
         }
 
+        // Auto-mark corresponding OPD queue item & appointment as Completed
+        await markOpdQueueCompletedForPrescription(ctx, args);
+
         return newPrescriptionId;
     },
 });
@@ -445,14 +448,18 @@ export const update = mutation({
             await recordComplaintsToCatalog(ctx, updates.chief_complaint);
         }
 
-        return await ctx.db.get(id);
+        // Auto-mark corresponding OPD queue item & appointment as Completed
+        await markOpdQueueCompletedForPrescription(ctx, rx || updates);
+
+        return { _id: id, id };
     },
 });
 
 export const list = query({
-    args: {},
-    handler: async (ctx) => {
-        return await ctx.db.query("prescriptions").order("desc").take(50);
+    args: { limit: v.optional(v.number()) },
+    handler: async (ctx, args) => {
+        const limit = args.limit || 100;
+        return await ctx.db.query("prescriptions").order("desc").take(limit);
     },
 });
 
@@ -475,15 +482,232 @@ export const listByPatient = query({
     },
 });
 
+export const listByPhone = query({
+    args: { phone_number: v.string() },
+    handler: async (ctx, args) => {
+        const cleanPhone = args.phone_number.replace(/\D/g, '').slice(-10);
+        if (!cleanPhone) return [];
+        const docs = await ctx.db.query("prescriptions").withIndex("by_phone", (q) => q.eq("phone_number", cleanPhone)).collect();
+        return docs.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+    },
+});
+
+export const listByPatientName = query({
+    args: { patient_name: v.string() },
+    handler: async (ctx, args) => {
+        const name = args.patient_name.trim();
+        if (!name || name.length < 2) return [];
+
+        // 1. Try exact match on indexed by_patient_name
+        const docs = await ctx.db
+            .query("prescriptions")
+            .withIndex("by_patient_name", (q) => q.eq("patient_name", name))
+            .collect();
+        if (docs.length > 0) {
+            return docs.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+        }
+
+        // 2. Also try lowercase version if casing differed
+        const docsLower = await ctx.db
+            .query("prescriptions")
+            .withIndex("by_patient_name", (q) => q.eq("patient_name", name.toLowerCase()))
+            .collect();
+        if (docsLower.length > 0) {
+            return docsLower.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+        }
+
+        // 3. Try title-cased version (e.g. "Tanuja Wayse")
+        const titleCased = name.split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+        if (titleCased !== name && titleCased !== name.toLowerCase()) {
+            const docsTitle = await ctx.db
+                .query("prescriptions")
+                .withIndex("by_patient_name", (q) => q.eq("patient_name", titleCased))
+                .collect();
+            if (docsTitle.length > 0) {
+                return docsTitle.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+            }
+        }
+
+        // 4. Try without honorific prefix (e.g. "Mr.", "Mrs.", "Dr.", "Smt.")
+        const strippedName = name.replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").trim();
+        if (strippedName && strippedName !== name) {
+            const docsStripped = await ctx.db
+                .query("prescriptions")
+                .withIndex("by_patient_name", (q) => q.eq("patient_name", strippedName))
+                .collect();
+            if (docsStripped.length > 0) {
+                return docsStripped.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+            }
+        }
+
+        // 5. Capped fallback check across recent 80 prescriptions (never whole-table scan)
+        const recent = await ctx.db.query("prescriptions").order("desc").take(80);
+        const normTarget = name.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "");
+        const matched = recent.filter((p) => {
+            const pNorm = (p.patient_name || "").toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "");
+            return pNorm && (pNorm === normTarget || pNorm.includes(normTarget) || normTarget.includes(pNorm));
+        });
+        return matched.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+    },
+});
+
+export const getQueueVisitTracking = query({
+    args: {
+        uhids: v.array(v.string()),
+        phones: v.array(v.string()),
+        todayDate: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const today = args.todayDate || new Date().toISOString().split("T")[0];
+        const lastVisitByUhid: Record<string, { date: string; daysAgo: number; doctor?: string; diagnosis?: string }> = {};
+        const lastVisitByPhone: Record<string, { date: string; daysAgo: number; doctor?: string; diagnosis?: string }> = {};
+        const todayRxByVisitId: Record<string, any> = {};
+        const todayRxByUhid: Record<string, any> = {};
+        const todayRxByPhone: Record<string, any> = {};
+
+        const calcDaysAgo = (dateStr: string) => {
+            const d = new Date(dateStr);
+            d.setHours(0, 0, 0, 0);
+            const t = new Date(today);
+            t.setHours(0, 0, 0, 0);
+            return Math.round((t.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+        };
+
+        const uniqueUhids = Array.from(new Set(args.uhids.map((u) => (u || "").trim().toUpperCase()).filter(Boolean)));
+        for (const uhid of uniqueUhids) {
+            const docs1 = await ctx.db
+                .query("prescriptions")
+                .withIndex("by_reference", (q) => q.eq("reference_number", uhid))
+                .order("desc")
+                .take(2);
+            let docs2: any[] = [];
+            if (docs1.length === 0) {
+                const altRef = uhid.startsWith("CH") ? uhid.replace(/^CH/i, "CRX") : uhid.replace(/^CRX/i, "CH");
+                if (altRef !== uhid) {
+                    docs2 = await ctx.db
+                        .query("prescriptions")
+                        .withIndex("by_reference", (q) => q.eq("reference_number", altRef))
+                        .order("desc")
+                        .take(2);
+                }
+            }
+            const allRx = [...docs1, ...docs2].sort(
+                (a, b) =>
+                    new Date(b.prescription_date || (b as any).created_at || b._creationTime || 0).getTime() -
+                    new Date(a.prescription_date || (a as any).created_at || a._creationTime || 0).getTime()
+            );
+
+            for (const rx of allRx) {
+                const rxDate = rx.prescription_date || new Date(rx._creationTime).toISOString().split("T")[0];
+                const lightRx = {
+                    _id: rx._id,
+                    id: rx._id,
+                    prescription_date: rxDate,
+                    doctor_name: rx.doctor_name,
+                    diagnosis: rx.diagnosis,
+                    opd_visit_id: rx.opd_visit_id,
+                    reference_number: rx.reference_number,
+                };
+                if (rx.opd_visit_id && !todayRxByVisitId[rx.opd_visit_id]) {
+                    todayRxByVisitId[rx.opd_visit_id] = lightRx;
+                }
+                if (rxDate === today) {
+                    if (!todayRxByUhid[uhid]) todayRxByUhid[uhid] = lightRx;
+                } else if (rxDate && rxDate < today) {
+                    const diffDays = calcDaysAgo(rxDate);
+                    if (diffDays > 0 && !lastVisitByUhid[uhid]) {
+                        lastVisitByUhid[uhid] = {
+                            date: rxDate,
+                            daysAgo: diffDays,
+                            doctor: rx.doctor_name,
+                            diagnosis: rx.diagnosis,
+                        };
+                    }
+                }
+            }
+        }
+
+        const cleanPhones = Array.from(new Set(args.phones.map((p) => (p || "").replace(/\D/g, "").slice(-10)).filter((p) => p.length === 10)));
+        for (const phone of cleanPhones) {
+            const docs = await ctx.db.query("prescriptions").withIndex("by_phone", (q) => q.eq("phone_number", phone)).order("desc").take(2);
+            const allRx = docs.sort(
+                (a, b) =>
+                    new Date(b.prescription_date || b._creationTime || 0).getTime() -
+                    new Date(a.prescription_date || a._creationTime || 0).getTime()
+            );
+
+            for (const rx of allRx) {
+                const rxDate = rx.prescription_date || new Date(rx._creationTime).toISOString().split("T")[0];
+                const rxName = (rx.patient_name || "").trim().toLowerCase();
+                const safeName = encodeURIComponent(rxName);
+                const key = rxName ? `${phone}_${safeName}` : phone;
+                const lightRx = {
+                    _id: rx._id,
+                    id: rx._id,
+                    prescription_date: rxDate,
+                    doctor_name: rx.doctor_name,
+                    diagnosis: rx.diagnosis,
+                    opd_visit_id: rx.opd_visit_id,
+                    reference_number: rx.reference_number,
+                };
+
+                if (rx.opd_visit_id && !todayRxByVisitId[rx.opd_visit_id]) {
+                    todayRxByVisitId[rx.opd_visit_id] = lightRx;
+                }
+                if (rxDate === today) {
+                    if (rxName && !todayRxByPhone[key]) todayRxByPhone[key] = lightRx;
+                    if (!todayRxByPhone[phone]) todayRxByPhone[phone] = lightRx;
+                } else if (rxDate && rxDate < today) {
+                    const diffDays = calcDaysAgo(rxDate);
+                    if (diffDays > 0) {
+                        if (rxName && !lastVisitByPhone[key]) {
+                            lastVisitByPhone[key] = {
+                                date: rxDate,
+                                daysAgo: diffDays,
+                                doctor: rx.doctor_name,
+                                diagnosis: rx.diagnosis,
+                            };
+                        }
+                        if (!lastVisitByPhone[phone]) {
+                            lastVisitByPhone[phone] = {
+                                date: rxDate,
+                                daysAgo: diffDays,
+                                doctor: rx.doctor_name,
+                                diagnosis: rx.diagnosis,
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
+        return {
+            lastVisitByUhid,
+            lastVisitByPhone,
+            todayRxByVisitId,
+            todayRxByUhid,
+            todayRxByPhone,
+        };
+    },
+});
+
 export const getLatestByPhone = query({
     args: { phone_number: v.string(), name: v.optional(v.string()), reference_number: v.optional(v.string()) },
     handler: async (ctx, args) => {
-        const prescriptions = await ctx.db.query("prescriptions").order("desc").take(100);
         const cleanPhone = args.phone_number.replace(/\D/g, '').slice(-10);
         const cleanName = args.name ? args.name.trim().toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "") : "";
         const targetRef = args.reference_number ? args.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX') : "";
 
-        return prescriptions.find((p) => {
+        let candidates: any[] = [];
+        if (targetRef) {
+            candidates = await ctx.db.query("prescriptions").withIndex("by_reference", (q) => q.eq("reference_number", targetRef)).collect();
+        }
+        if (candidates.length === 0 && cleanPhone) {
+            candidates = await ctx.db.query("prescriptions").withIndex("by_phone", (q) => q.eq("phone_number", cleanPhone)).collect();
+        }
+        candidates.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+
+        return candidates.find((p) => {
             const pRef = (p.reference_number || "").trim().toUpperCase().replace(/^CH/i, 'CRX');
             if (targetRef && pRef) {
                 return pRef === targetRef;
@@ -655,6 +879,83 @@ export const cleanErronousCrownCuttingRecords = mutation({
 });
 
 /**
+ * Automatically marks the corresponding OPD queue item and appointment as Completed
+ * when a prescription is created or updated.
+ */
+async function markOpdQueueCompletedForPrescription(ctx: any, rxArgs: any) {
+    try {
+        const now = Date.now();
+        const rxDate = rxArgs.prescription_date || (rxArgs.created_at ? String(rxArgs.created_at).split("T")[0] : new Date().toISOString().split("T")[0]);
+        const cleanPhone = (rxArgs.phone_number || "").replace(/\D/g, "").slice(-10);
+        const uhidNorm = (rxArgs.reference_number || "").trim().toUpperCase();
+
+        let matchedInQueue = false;
+
+        // 1. If opd_visit_id is provided, match by queue_id or _id directly
+        if (rxArgs.opd_visit_id) {
+            let item = await ctx.db
+                .query("opd_queue")
+                .withIndex("by_queue_id", (q: any) => q.eq("queue_id", rxArgs.opd_visit_id))
+                .first();
+            if (!item) {
+                try {
+                    item = await ctx.db.get(rxArgs.opd_visit_id as any);
+                } catch {}
+            }
+            if (item) {
+                matchedInQueue = true;
+                if (item.status !== "Completed") {
+                    await ctx.db.patch(item._id, { status: "Completed", updated_at: now });
+                }
+            }
+        }
+
+        // 2. Only if not already matched, query today's queue items via registeredAt index
+        if (!matchedInQueue && (uhidNorm || (cleanPhone && cleanPhone.length === 10))) {
+            const startIso = `${rxDate}T00:00:00.000Z`;
+            const endIso = `${rxDate}T23:59:59.999Z`;
+            const todayQueueItems = await ctx.db
+                .query("opd_queue")
+                .withIndex("by_registered_at", (q: any) =>
+                    q.gte("registeredAt", startIso).lte("registeredAt", endIso)
+                )
+                .collect();
+
+            for (const item of todayQueueItems) {
+                const itemUhid = (item.uhid || "").trim().toUpperCase();
+                const itemPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
+
+                const matchUhid = uhidNorm && itemUhid && itemUhid === uhidNorm;
+                const matchPhone = cleanPhone && cleanPhone.length === 10 && itemPhone === cleanPhone;
+
+                if (matchUhid || matchPhone) {
+                    if (item.status !== "Completed" && item.status !== "Cancelled") {
+                        await ctx.db.patch(item._id, { status: "Completed", updated_at: now });
+                    }
+                }
+            }
+        }
+
+        // 3. If there is an appointment for this phone & date, mark it COMPLETED
+        if (cleanPhone && cleanPhone.length === 10) {
+            const appts = await ctx.db
+                .query("appointments")
+                .withIndex("by_phone", (q: any) => q.eq("phone", cleanPhone))
+                .collect();
+            for (const appt of appts) {
+                const aDate = (appt.date || "").split("T")[0];
+                const aPhone = (appt.phone || "").replace(/\D/g, "").slice(-10);
+                if (aDate === rxDate && aPhone === cleanPhone && appt.status !== "COMPLETED" && appt.status !== "CANCELLED") {
+                    await ctx.db.patch(appt._id, { status: "COMPLETED", updated_at: now });
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Error marking OPD queue completed for prescription:", err);
+    }
+}
+
+/**
  * Internal helper to record one or multiple diagnosis items to the `diagnoses` catalog
  */
 async function recordDiagnosesToCatalog(ctx: any, diagnosisText?: string) {
@@ -667,25 +968,18 @@ async function recordDiagnosesToCatalog(ctx: any, diagnosisText?: string) {
 
     try {
         const now = Date.now();
-        const allDiagnoses = await ctx.db.query("diagnoses").collect();
         for (const part of parts) {
-            const existing = allDiagnoses.find(
-                (d: any) => d.name.trim().toLowerCase() === part.toLowerCase()
-            );
+            const existing = await ctx.db
+                .query("diagnoses")
+                .withIndex("by_name", (q: any) => q.eq("name", part))
+                .first();
             if (existing) {
                 await ctx.db.patch(existing._id, {
                     count: (existing.count || 1) + 1,
                     last_used_at: now,
                 });
             } else {
-                const newId = await ctx.db.insert("diagnoses", {
-                    name: part,
-                    count: 1,
-                    last_used_at: now,
-                    created_at: now,
-                });
-                allDiagnoses.push({
-                    _id: newId,
+                await ctx.db.insert("diagnoses", {
                     name: part,
                     count: 1,
                     last_used_at: now,
@@ -711,25 +1005,18 @@ async function recordComplaintsToCatalog(ctx: any, complaintText?: string) {
 
     try {
         const now = Date.now();
-        const allComplaints = await ctx.db.query("complaints").collect();
         for (const part of parts) {
-            const existing = allComplaints.find(
-                (c: any) => c.name.trim().toLowerCase() === part.toLowerCase()
-            );
+            const existing = await ctx.db
+                .query("complaints")
+                .withIndex("by_name", (q: any) => q.eq("name", part))
+                .first();
             if (existing) {
                 await ctx.db.patch(existing._id, {
                     count: (existing.count || 1) + 1,
                     last_used_at: now,
                 });
             } else {
-                const newId = await ctx.db.insert("complaints", {
-                    name: part,
-                    count: 1,
-                    last_used_at: now,
-                    created_at: now,
-                });
-                allComplaints.push({
-                    _id: newId,
+                await ctx.db.insert("complaints", {
                     name: part,
                     count: 1,
                     last_used_at: now,
@@ -755,10 +1042,10 @@ export const saveDiagnosis = mutation({
         if (!trimmed || trimmed.length < 2) return null;
 
         const now = Date.now();
-        const allDiagnoses = await ctx.db.query("diagnoses").collect();
-        const existing = allDiagnoses.find(
-            (d) => d.name.trim().toLowerCase() === trimmed.toLowerCase()
-        );
+        const existing = await ctx.db
+            .query("diagnoses")
+            .withIndex("by_name", (q) => q.eq("name", trimmed))
+            .first();
 
         if (existing) {
             await ctx.db.patch(existing._id, {
@@ -789,16 +1076,16 @@ export const saveMultipleDiagnoses = mutation({
     },
     handler: async (ctx, args) => {
         const now = Date.now();
-        const allDiagnoses = await ctx.db.query("diagnoses").collect();
         const savedIds: any[] = [];
 
         for (const raw of args.names) {
             const trimmed = raw.trim();
             if (!trimmed || trimmed.length < 2) continue;
 
-            const existing = allDiagnoses.find(
-                (d) => d.name.trim().toLowerCase() === trimmed.toLowerCase()
-            );
+            const existing = await ctx.db
+                .query("diagnoses")
+                .withIndex("by_name", (q) => q.eq("name", trimmed))
+                .first();
 
             if (existing) {
                 await ctx.db.patch(existing._id, {
@@ -814,14 +1101,6 @@ export const saveMultipleDiagnoses = mutation({
                     created_at: now,
                     category: args.category,
                 });
-                allDiagnoses.push({
-                    _id: newId,
-                    name: trimmed,
-                    count: 1,
-                    last_used_at: now,
-                    created_at: now,
-                    category: args.category,
-                } as any);
                 savedIds.push(newId);
             }
         }
@@ -845,6 +1124,9 @@ export const getDiagnosisSuggestions = query({
         // 1. Fetch from diagnoses catalog table (lightweight, zero prescription overhead)
         const savedDiagnoses = await ctx.db.query("diagnoses").order("desc").take(60);
 
+        // 2. Fetch past diagnoses from recent prescriptions so active clinic diagnoses auto-suggest immediately
+        const recentPrescriptions = await ctx.db.query("prescriptions").order("desc").take(30);
+
         const map = new Map<string, { name: string; count: number; lastUsed: number }>();
 
         // Populate from saved diagnoses table
@@ -856,6 +1138,25 @@ export const getDiagnosisSuggestions = query({
                 count: item.count || 1,
                 lastUsed: item.last_used_at || item.created_at || 0,
             });
+        }
+
+        // Populate from recent prescriptions
+        for (const rx of recentPrescriptions) {
+            if (!rx.diagnosis) continue;
+            const parts = rx.diagnosis.split(/[\n,;]+/).map((s) => s.trim()).filter((s) => s.length >= 2);
+            for (const part of parts) {
+                const key = part.toLowerCase();
+                const existing = map.get(key);
+                if (existing) {
+                    existing.count += 1;
+                } else {
+                    map.set(key, {
+                        name: part,
+                        count: 1,
+                        lastUsed: rx._creationTime || 0,
+                    });
+                }
+            }
         }
 
         // Add standard common presets as fallback if not present
@@ -941,13 +1242,23 @@ export const getDiagnosisSuggestions = query({
  */
 export const autoSavePrescriptionDiagnosis = mutation({
     args: {
-        id: v.id("prescriptions"),
+        id: v.string(),
         diagnosis: v.string(),
     },
     handler: async (ctx, args) => {
-        await ctx.db.patch(args.id, {
-            diagnosis: args.diagnosis,
-        });
+        try {
+            let existing: any = null;
+            try {
+                existing = await ctx.db.get(args.id as any);
+            } catch {}
+            if (existing) {
+                await ctx.db.patch(existing._id, {
+                    diagnosis: args.diagnosis,
+                });
+            }
+        } catch (err) {
+            console.error("autoSavePrescriptionDiagnosis doc patch error:", err);
+        }
 
         await recordDiagnosesToCatalog(ctx, args.diagnosis);
         return { success: true };
@@ -967,10 +1278,10 @@ export const saveComplaint = mutation({
         if (!trimmed || trimmed.length < 2) return null;
 
         const now = Date.now();
-        const allComplaints = await ctx.db.query("complaints").collect();
-        const existing = allComplaints.find(
-            (c) => c.name.trim().toLowerCase() === trimmed.toLowerCase()
-        );
+        const existing = await ctx.db
+            .query("complaints")
+            .withIndex("by_name", (q) => q.eq("name", trimmed))
+            .first();
 
         if (existing) {
             await ctx.db.patch(existing._id, {
@@ -1001,16 +1312,16 @@ export const saveMultipleComplaints = mutation({
     },
     handler: async (ctx, args) => {
         const now = Date.now();
-        const allComplaints = await ctx.db.query("complaints").collect();
         const savedIds: any[] = [];
 
         for (const raw of args.names) {
             const trimmed = raw.trim();
             if (!trimmed || trimmed.length < 2) continue;
 
-            const existing = allComplaints.find(
-                (c) => c.name.trim().toLowerCase() === trimmed.toLowerCase()
-            );
+            const existing = await ctx.db
+                .query("complaints")
+                .withIndex("by_name", (q) => q.eq("name", trimmed))
+                .first();
 
             if (existing) {
                 await ctx.db.patch(existing._id, {
@@ -1026,14 +1337,6 @@ export const saveMultipleComplaints = mutation({
                     created_at: now,
                     category: args.category,
                 });
-                allComplaints.push({
-                    _id: newId,
-                    name: trimmed,
-                    count: 1,
-                    last_used_at: now,
-                    created_at: now,
-                    category: args.category,
-                } as any);
                 savedIds.push(newId);
             }
         }
@@ -1136,13 +1439,23 @@ export const getComplaintSuggestions = query({
  */
 export const autoSavePrescriptionComplaint = mutation({
     args: {
-        id: v.id("prescriptions"),
+        id: v.string(),
         chief_complaint: v.string(),
     },
     handler: async (ctx, args) => {
-        await ctx.db.patch(args.id, {
-            chief_complaint: args.chief_complaint,
-        });
+        try {
+            let existing: any = null;
+            try {
+                existing = await ctx.db.get(args.id as any);
+            } catch {}
+            if (existing) {
+                await ctx.db.patch(existing._id, {
+                    chief_complaint: args.chief_complaint,
+                });
+            }
+        } catch (err) {
+            console.error("autoSavePrescriptionComplaint doc patch error:", err);
+        }
 
         await recordComplaintsToCatalog(ctx, args.chief_complaint);
         return { success: true };

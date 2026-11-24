@@ -88,14 +88,17 @@ export default function AppointmentsPage() {
   // Wait, if we want to show dots on the calendar, we should query all appointments or a specific range.
   // We'll just fetch all appointments for now, assuming the list isn't huge, or we can just fetch list and filter.
   // Let's use the list query and filter it on the client side.
-  const allAppointments = useQuery(api.appointments.list);
-  const allPatients = useQuery(api.patients.list);
-
   // Debounced Patient Search in Appointment Modal
   const [patientSearchQuery, setPatientSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const patientDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  const allAppointments = useQuery(api.appointments.list);
+  const allPatients = useQuery(
+    api.patients.search,
+    debouncedSearchQuery.trim().length >= 2 ? { searchTerm: debouncedSearchQuery.trim() } : "skip"
+  );
 
   React.useEffect(() => {
     const handler = setTimeout(() => {
@@ -250,7 +253,7 @@ export default function AppointmentsPage() {
   const removeAppointment = useMutation(api.appointments.remove);
   const upsertOpdQueueMutation = useMutation(api.opd_queue.upsert);
   const removeOpdQueueMutation = useMutation(api.opd_queue.remove);
-  const liveOpdQueue = useQuery(api.opd_queue.list, {});
+  const liveOpdQueue = useQuery(api.opd_queue.list, { date: selectedDate });
 
   const [lastBookedTime, setLastBookedTime] = useState<string>('');
 
@@ -488,14 +491,16 @@ export default function AppointmentsPage() {
           // 1. Resolve Patient UHID & patientId
           let uhid = '';
           let patientId: string | undefined = undefined;
+          let isExistingPatient = false;
           const cleanPhone = (formData.phone || '').replace(/\D/g, '').slice(0, 10);
           const patientName = formData.name.trim();
           if (cleanPhone) {
             try {
               const pt = await getPatientByPhoneNumber(cleanPhone, patientName);
               if (pt && (!pt.name || pt.name.trim().toLowerCase() === patientName.toLowerCase())) {
+                isExistingPatient = true;
                 patientId = pt.id;
-                uhid = (pt.reference_number || '').replace(/^CH/i, 'CRX');
+                uhid = (pt.reference_number || '').replace(/^CH/i, 'GNH');
               } else {
                 const newPt = await getOrCreatePatient({
                   name: patientName,
@@ -506,7 +511,7 @@ export default function AppointmentsPage() {
                 });
                 if (newPt) {
                   patientId = newPt.id;
-                  uhid = (newPt.reference_number || '').replace(/^CH/i, 'CRX');
+                  uhid = (newPt.reference_number || '').replace(/^CH/i, 'GNH');
                 }
               }
             } catch (err) {
@@ -514,7 +519,7 @@ export default function AppointmentsPage() {
             }
           }
           if (!uhid) {
-            uhid = `CRX0001`;
+            uhid = `GNH0001`;
           }
 
           // 2. Calculate next token number for this doctor
@@ -553,7 +558,7 @@ export default function AppointmentsPage() {
             doctor: docName,
             department: dept,
             priority: 'Normal',
-            visitType: 'Appointment',
+            visitType: isExistingPatient ? 'Routine Follow-up' : 'Appointment',
             status: 'Waiting', // DIRECTLY IN WAITING!
             vitals: {},
             consultationFee: 0,
@@ -768,7 +773,8 @@ export default function AppointmentsPage() {
                 <div className="flex items-center gap-1.5 mt-2.5 overflow-x-auto pb-0.5">
                   {[
                     { id: 'ALL', label: 'All' },
-                    ...hospitalConfig.doctors.map(d => ({ id: d.name, label: d.name })),
+                    { id: 'Dr. Rajesh Gandhi', label: 'Dr. Rajesh' },
+                    { id: 'Dr. Rajesh Gandhi', label: 'Dr. Shillpa' },
                   ].map(d => (
                     <button
                       key={d.id}
@@ -1181,7 +1187,10 @@ export default function AppointmentsPage() {
                   Consulting Doctor <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {hospitalConfig.doctors.map((doc) => {
+                  {[
+                    { name: "Dr. Rajesh Gandhi", title: "Dr. Rajesh Gandhi", specialty: "Orthopaedics & Joint Replacement Surgeon", color: "emerald" },
+                    { name: "Dr. Rajesh Gandhi", title: "Dr. Rajesh Gandhi", specialty: "Obstetrics & Gynaecology Specialist", color: "pink" },
+                  ].map((doc) => {
                     const isSelected = formData.doctor_name === doc.name;
                     return (
                       <button
@@ -1189,27 +1198,31 @@ export default function AppointmentsPage() {
                         type="button"
                         onClick={() => {
                           const nextTime = getNextAvailableTime(selectedDate, doc.name, formData.time);
+                          const isGyn = isShillpaDoctor(doc.name);
                           setFormData(prev => ({
                             ...prev,
                             doctor_name: doc.name,
                             time: nextTime,
+                            ...(isGyn ? { sex: 'Female' } : {}),
                           }));
                         }}
                         className={`p-3 rounded-xl border text-left transition flex items-center justify-between cursor-pointer ${
                           isSelected
-                            ? 'bg-sky-50/80 border-sky-400 text-sky-950 shadow-xs ring-1 ring-sky-400'
+                            ? doc.color === 'pink'
+                              ? 'bg-pink-50/80 border-pink-400 text-pink-950 shadow-xs ring-1 ring-pink-400'
+                              : 'bg-emerald-50/80 border-emerald-400 text-emerald-950 shadow-xs ring-1 ring-emerald-400'
                             : 'bg-gray-50/60 border-gray-200 hover:bg-gray-100 text-gray-700'
                         }`}
                       >
                         <div>
                           <div className="font-bold text-sm flex items-center gap-1.5">
-                            <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-sky-600' : 'bg-gray-400'}`} />
-                            {doc.name}
+                            <span className={`w-2 h-2 rounded-full ${isSelected ? (doc.color === 'pink' ? 'bg-pink-600' : 'bg-emerald-600') : 'bg-gray-400'}`} />
+                            {doc.title}
                           </div>
-                          <p className="text-[11px] opacity-80 mt-0.5">{doc.designation || 'Consulting Physician'}</p>
+                          <p className="text-[11px] opacity-80 mt-0.5">{doc.specialty}</p>
                         </div>
                         {isSelected && (
-                          <span className="text-xs font-bold text-sky-700">
+                          <span className={`text-xs font-bold ${doc.color === 'pink' ? 'text-pink-700' : 'text-emerald-700'}`}>
                             ✓
                           </span>
                         )}
