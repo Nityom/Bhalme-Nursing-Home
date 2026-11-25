@@ -1083,7 +1083,7 @@ export default function OPDManagementPage() {
     }
   };
 
-  // Doctor change handler (syncs department & auto-sets female for Dr. Swati Raut)
+  // Doctor change handler (syncs department & auto-sets female for Dr. Swati Gandhi)
   const handleDoctorChange = (doctorName: string) => {
     const docObj = DOCTORS.find((d) => d.name === doctorName);
     const isGyn = isShillpaDoctor(doctorName);
@@ -1931,7 +1931,7 @@ export default function OPDManagementPage() {
               <span className="font-medium text-slate-500 text-xs">Doctor:</span>
               {[
                 ["Dr. Rajesh Gandhi", "Dr. Rajesh Gandhi"],
-                ["Dr. Swati Gandhi", "Dr. Swati Raut"],
+                ["Dr. Swati Gandhi", "Dr. Swati Gandhi"],
               ].map(([value, label]) => {
                 const isSelected = selectedDoctorFilter.toLowerCase().includes(value.toLowerCase().replace(/dr\.?\s*/i, '').slice(0, 5));
                 const isGyn = isShillpaDoctor(value);

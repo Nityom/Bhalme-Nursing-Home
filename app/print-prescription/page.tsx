@@ -840,7 +840,7 @@ function PrintPrescriptionContent() {
             />
           )}
           <div className="sig-doc-name">
-            {resolvedDoctorName || 'Dr Vipeen Raut'}
+            {resolvedDoctorName || 'Dr. Rajesh Gandhi'}
           </div>
         </div>
       </div>
