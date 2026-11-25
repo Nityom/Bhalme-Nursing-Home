@@ -156,7 +156,7 @@ export default function PrescriptionClinicalNotesSection({
   selectedDoctorName,
   onRestorePreviousNote,
 }: PrescriptionClinicalNotesSectionProps) {
-  const isGynae = (selectedDoctorName || "").toLowerCase().includes("shilpa") || (selectedDoctorName || "").toLowerCase().includes("shillpa") || (selectedDoctorName || "").toLowerCase().includes("gyn");
+  const isGynae = (selectedDoctorName || "").toLowerCase().includes("swati") || (selectedDoctorName || "").toLowerCase().includes("swati") || (selectedDoctorName || "").toLowerCase().includes("gyn");
   const docCategory = isGynae ? "Obstetrics & Gynaecology" : "Orthopaedics";
   const [newTestName, setNewTestName] = useState('');
   const [showTestSuggestions, setShowTestSuggestions] = useState(false);

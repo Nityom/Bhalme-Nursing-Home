@@ -72,8 +72,8 @@ export default function PrescriptionPatientBanner({
   const [isEditingDetails, setIsEditingDetails] = useState(false);
 
   const isGynae =
-    (selectedDoctorName || '').toLowerCase().includes('shilpa') ||
-    (selectedDoctorName || '').toLowerCase().includes('shillpa') ||
+    (selectedDoctorName || '').toLowerCase().includes('swati') ||
+    (selectedDoctorName || '').toLowerCase().includes('swati') ||
     (selectedDoctorName || '').toLowerCase().includes('gynae') ||
     (selectedDoctorName || '').toLowerCase().includes('obs');
 

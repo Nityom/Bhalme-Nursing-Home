@@ -292,7 +292,7 @@ export function usePrescriptionForm() {
       try {
         const p = new URLSearchParams(window.location.search);
         const qDoc = p.get('doctorName') || p.get('doctor') || p.get('doc') || localStorage.getItem('bhalme_active_doctor') || 'Dr. Rajesh Gandhi';
-        const isGynae = qDoc.toLowerCase().includes('shilpa') || qDoc.toLowerCase().includes('shillpa');
+        const isGynae = qDoc.toLowerCase().includes('swati') || qDoc.toLowerCase().includes('swati');
         return isGynae ? 200 : 400;
       } catch {}
     }
@@ -404,7 +404,7 @@ export function usePrescriptionForm() {
   // Detect if current doctor is Gynae specialist
   const isGynaeDoc = useMemo(() => {
     const doc = (selectedDoctorName || '').toLowerCase();
-    return doc.includes('shilpa') || doc.includes('shillpa') || doc.includes('gyn');
+    return doc.includes('swati') || doc.includes('swati') || doc.includes('gyn');
   }, [selectedDoctorName]);
 
   // Previous visit prescription cache for restoring fields via Undo button
@@ -1030,7 +1030,7 @@ export function usePrescriptionForm() {
   const handleDoctorSelect = (docName: string) => {
     setSelectedDoctorName(docName);
     const docProfile = getDoctorProfile(docName);
-    const isDocGyn = docName.toLowerCase().includes('shilpa') || docName.toLowerCase().includes('shillpa');
+    const isDocGyn = docName.toLowerCase().includes('swati') || docName.toLowerCase().includes('swati');
     if (isDocGyn) {
       setFormData((prev: any) => ({ ...prev, sex: 'Female' }));
     }
@@ -1681,7 +1681,7 @@ export function usePrescriptionForm() {
           }
           setIsNewPatient(false);
 
-          const isGynae = (selectedDoctorName || '').toLowerCase().includes('shilpa') || (selectedDoctorName || '').toLowerCase().includes('shillpa');
+          const isGynae = (selectedDoctorName || '').toLowerCase().includes('swati') || (selectedDoctorName || '').toLowerCase().includes('swati');
 
           // Check if patient visited within 10 days
           let isWithin10Days = false;
@@ -1742,7 +1742,7 @@ export function usePrescriptionForm() {
           showTemplateToast(`Patient Found: ${existingPatient.name} (${isWithin10Days ? 'Follow-up within 10 days' : 'Re-visit'}: ₹${fee})`);
         } else {
           setIsNewPatient(true);
-          const isGynae = (selectedDoctorName || '').toLowerCase().includes('shilpa') || (selectedDoctorName || '').toLowerCase().includes('shillpa');
+          const isGynae = (selectedDoctorName || '').toLowerCase().includes('swati') || (selectedDoctorName || '').toLowerCase().includes('swati');
           setConsultationCharge(isGynae ? 200 : 400);
         }
       } catch (err) {
@@ -2327,7 +2327,7 @@ export function usePrescriptionForm() {
         if (qOpdId) setOpdVisitId(qOpdId);
         if (qDoctor) {
           setSelectedDoctorName(qDoctor);
-          const isGynae = qDoctor.toLowerCase().includes('shilpa') || qDoctor.toLowerCase().includes('shillpa');
+          const isGynae = qDoctor.toLowerCase().includes('swati') || qDoctor.toLowerCase().includes('swati');
           setConsultationCharge(isGynae ? 200 : 400);
         }
 
@@ -2432,7 +2432,7 @@ export function usePrescriptionForm() {
               if (shouldShowDashboard) {
                 setShowPastDashboard(true);
                 setActiveTab('View Past');
-                const isGynaeDoc = (existing.doctor_name || selectedDoctorName || '').toLowerCase().includes('shilpa') || (existing.doctor_name || selectedDoctorName || '').toLowerCase().includes('shillpa');
+                const isGynaeDoc = (existing.doctor_name || selectedDoctorName || '').toLowerCase().includes('swati') || (existing.doctor_name || selectedDoctorName || '').toLowerCase().includes('swati');
                 if (isGynaeDoc) {
                   autoPopulateAntenatalFromPastRx(effectiveList, todayDate);
                 }
@@ -2479,7 +2479,7 @@ export function usePrescriptionForm() {
           const qLmp = params.get('lmp');
           if (qLmp) setLmpDate(qLmp);
 
-          const isGynaeDoc = (qDoctor || selectedDoctorName || '').toLowerCase().includes('shilpa') || (qDoctor || selectedDoctorName || '').toLowerCase().includes('shillpa');
+          const isGynaeDoc = (qDoctor || selectedDoctorName || '').toLowerCase().includes('swati') || (qDoctor || selectedDoctorName || '').toLowerCase().includes('swati');
 
           let patientRef = qReference;
           if (qReference) {

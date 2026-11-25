@@ -80,9 +80,9 @@ export default function IpdDischargedArchiveTab({
       if (selectedDoctor !== "All") {
         const docLower = (adm.consultantDoctor || "").toLowerCase();
         if (selectedDoctor === "Dr. Swati Gandhi") {
-          if (!docLower.includes("shilpa") && !docLower.includes("shillpa")) return false;
+          if (!docLower.includes("swati") && !docLower.includes("swati")) return false;
         } else if (selectedDoctor === "Dr. Rajesh Gandhi") {
-          if (docLower.includes("shilpa") || docLower.includes("shillpa")) return false;
+          if (docLower.includes("swati") || docLower.includes("swati")) return false;
         }
       }
 

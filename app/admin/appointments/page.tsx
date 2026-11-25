@@ -482,7 +482,7 @@ export default function AppointmentsPage() {
         // DIRECTLY ADD IN WAITING (NO NEED TO CHECK IN IN OPD)
         try {
           const docName = formData.doctor_name || hospitalConfig.doctors[0]?.name || 'Dr. Rajesh Gandhi';
-          const dept = docName.toLowerCase().includes('shillpa')
+          const dept = docName.toLowerCase().includes('swati')
             ? 'Obstetrics & Gynaecology'
             : 'Orthopaedics & Joint Replacement';
           const isGynae = isShillpaDoctor(docName) || dept.toLowerCase().includes('gynaec');
@@ -862,7 +862,7 @@ export default function AppointmentsPage() {
             ) : (
               appointmentsForDate.map((appt, index) => {
                 const initials = (appt.name || '?').split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase();
-                const isGynae = (appt.doctor_name || '').toLowerCase().includes('shillpa');
+                const isGynae = (appt.doctor_name || '').toLowerCase().includes('swati');
                 const leftAccent = isGynae ? 'border-l-pink-500' : 'border-l-emerald-600';
                 const avatarColor = isGynae ? 'bg-pink-100 text-pink-700' : 'bg-emerald-100 text-emerald-700';
 

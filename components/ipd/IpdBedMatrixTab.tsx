@@ -103,9 +103,9 @@ export default function IpdBedMatrixTab({
       if (selectedDoctorFilter !== "All") {
         const docLower = (adm.consultantDoctor || "").toLowerCase();
         if (selectedDoctorFilter === "Dr. Swati Gandhi") {
-          if (!docLower.includes("shilpa") && !docLower.includes("shillpa")) return false;
+          if (!docLower.includes("swati") && !docLower.includes("swati")) return false;
         } else if (selectedDoctorFilter === "Dr. Rajesh Gandhi") {
-          if (docLower.includes("shilpa") || docLower.includes("shillpa")) return false;
+          if (docLower.includes("swati") || docLower.includes("swati")) return false;
         } else {
           if (!docLower.includes(selectedDoctorFilter.toLowerCase())) return false;
         }

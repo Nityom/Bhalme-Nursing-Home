@@ -256,10 +256,10 @@ export default function PrescriptionPastVisitsDashboard({
 
   const activeVitals = activeVisit?.vitals || {};
   const isGynae =
-    (selectedDoctorName || '').toLowerCase().includes('shilpa') ||
-    (selectedDoctorName || '').toLowerCase().includes('shillpa') ||
-    (activeVisit?.doctor_name || '').toLowerCase().includes('shilpa') ||
-    (activeVisit?.doctor_name || '').toLowerCase().includes('shillpa');
+    (selectedDoctorName || '').toLowerCase().includes('swati') ||
+    (selectedDoctorName || '').toLowerCase().includes('swati') ||
+    (activeVisit?.doctor_name || '').toLowerCase().includes('swati') ||
+    (activeVisit?.doctor_name || '').toLowerCase().includes('swati');
 
   return (
     <div className="max-w-7xl mx-auto space-y-4 animate-in fade-in duration-200">

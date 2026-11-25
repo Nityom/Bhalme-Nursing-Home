@@ -233,8 +233,8 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
     } catch { }
   };
 
-  const isGynae = (form.selectedDoctorName || '').toLowerCase().includes('shilpa') ||
-    (form.selectedDoctorName || '').toLowerCase().includes('shillpa') ||
+  const isGynae = (form.selectedDoctorName || '').toLowerCase().includes('swati') ||
+    (form.selectedDoctorName || '').toLowerCase().includes('swati') ||
     (form.selectedDoctorName || '').toLowerCase().includes('gynae');
   const doctorCategory = isGynae ? 'Obstetrics & Gynaecology' : 'Orthopaedics';
 

@@ -62,7 +62,7 @@ export default function PrescriptionEmailModal({
   if (!isOpen || !data) return null;
 
   const doctorName = data.doctorName || 'Dr. Rajesh Gandhi';
-  const isGynae = doctorName.toLowerCase().includes('shilpa') || doctorName.toLowerCase().includes('shillpa') || doctorName.toLowerCase().includes('gynae');
+  const isGynae = doctorName.toLowerCase().includes('swati') || doctorName.toLowerCase().includes('swati') || doctorName.toLowerCase().includes('gynae');
   const senderEmail = isGynae ? 'drswatigandhi@gmail.com' : 'drrajeshgandhi@gmail.com';
 
   const handleSendEmail = async (e: React.FormEvent) => {

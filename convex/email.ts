@@ -894,8 +894,8 @@ export const sendPrescriptionEmail = action({
 
     const docName = args.doctorName || "Dr. Nitin Bhalme";
     const isGynae =
-      docName.toLowerCase().includes("shilpa") ||
-      docName.toLowerCase().includes("shillpa") ||
+      docName.toLowerCase().includes("swati") ||
+      docName.toLowerCase().includes("swati") ||
       docName.toLowerCase().includes("gynae");
 
     const doctorEmail = isGynae

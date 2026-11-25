@@ -937,8 +937,8 @@ export async function POST(req: NextRequest) {
     // Determine Doctor and Sender Email Address
     const docName = body.doctorName || 'Dr. Rajesh Gandhi';
     const isGynae =
-      docName.toLowerCase().includes('shilpa') ||
-      docName.toLowerCase().includes('shillpa') ||
+      docName.toLowerCase().includes('swati') ||
+      docName.toLowerCase().includes('swati') ||
       docName.toLowerCase().includes('gynae');
 
     const doctorEmail = isGynae ? 'drrajeshgandhi@gmail.com' : 'drrajeshgandhi@gmail.com';

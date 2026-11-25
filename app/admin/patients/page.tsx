@@ -124,7 +124,7 @@ const ViewPatients = () => {
     if (patient.prescriptions && patient.prescriptions.length > 0) {
       patient.prescriptions.forEach((p) => {
         const doc = (p.doctor_name || '').toLowerCase();
-        if (doc.includes('shilpa') || doc.includes('shillpa') || doc.includes('gynae')) {
+        if (doc.includes('swati') || doc.includes('swati') || doc.includes('gynae')) {
           docs.add('Dr. Swati Gandhi');
         } else {
           docs.add('Dr. Rajesh Gandhi');
@@ -140,7 +140,7 @@ const ViewPatients = () => {
     const latestRx = patient.prescriptions?.[0];
     if (latestRx?.doctor_name) {
       const doc = latestRx.doctor_name.toLowerCase();
-      if (doc.includes('shilpa') || doc.includes('shillpa') || doc.includes('gynae')) {
+      if (doc.includes('swati') || doc.includes('swati') || doc.includes('gynae')) {
         return 'Dr. Swati Gandhi';
       }
     }
@@ -488,9 +488,9 @@ const ViewPatients = () => {
       const docRxCount = patient.prescriptions.filter((p) => {
         const d = (p.doctor_name || '').toLowerCase();
         if (selectedDoctorFilter === 'Dr. Swati Gandhi') {
-          return d.includes('shilpa') || d.includes('shillpa');
+          return d.includes('swati') || d.includes('swati');
         }
-        return !d.includes('shilpa') && !d.includes('shillpa');
+        return !d.includes('swati') && !d.includes('swati');
       }).length;
       return sum + (docRxCount || 1);
     }, 0);
@@ -982,7 +982,7 @@ const ViewPatients = () => {
                         <td className="px-3.5 py-3 whitespace-nowrap">
                           <div className="flex flex-col gap-1 items-start">
                             {doctors.map((d) => {
-                              const isGynae = d.toLowerCase().includes('shilpa') || d.toLowerCase().includes('shillpa');
+                              const isGynae = d.toLowerCase().includes('swati') || d.toLowerCase().includes('swati');
                               return (
                                 <span
                                   key={d}

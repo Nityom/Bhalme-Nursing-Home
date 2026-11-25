@@ -79,7 +79,7 @@ export default function PrescriptionDoctorSignatureCard({
                   <div>
                     <p className="text-xs font-bold text-slate-900 leading-tight">{doc.name}</p>
                     <p className="text-[10px] text-emerald-700 font-semibold">
-                      {doc.name.toLowerCase().includes('shillpa')
+                      {doc.name.toLowerCase().includes('swati')
                         ? 'Gynecologist & Obstetrician'
                         : 'Orthopaedic & Joint Replacement Surgeon'}
                     </p>

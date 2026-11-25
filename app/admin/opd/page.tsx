@@ -89,7 +89,7 @@ const DEPARTMENTS = [
 
 const getDoctorKey = (docName?: string) => {
   const clean = (docName || "").toLowerCase();
-  if (clean.includes("shilpa") || clean.includes("shillpa")) {
+  if (clean.includes("swati") || clean.includes("swati")) {
     return "shillpa";
   }
   return "vipeen";
@@ -458,7 +458,7 @@ export default function OPDManagementPage() {
     if (typeof window !== "undefined") {
       try {
         const saved = localStorage.getItem("bhalme_opd_doctor_filter");
-        if (saved && (saved.includes("Shilpa") || saved.includes("Shillpa"))) {
+        if (saved && (saved.includes("Swati") || saved.includes("Swati"))) {
           return "Dr. Swati Gandhi";
         }
         if (saved && saved.includes("Vipeen")) {
@@ -1483,7 +1483,7 @@ export default function OPDManagementPage() {
       const nextToken = existingTokens.length > 0 ? Math.max(...existingTokens) + 1 : 1;
       const tokenNumber = String(nextToken).padStart(2, "0");
 
-      const dept = docName.toLowerCase().includes("shillpa")
+      const dept = docName.toLowerCase().includes("swati")
         ? "Obstetrics & Gynaecology"
         : "Orthopaedics & Joint Replacement";
 
@@ -1684,7 +1684,7 @@ export default function OPDManagementPage() {
           b.total_amount === 200 ||
           b.total_amount === 100 ||
           (b.notes || "").toLowerCase().includes("gynae") ||
-          (b.notes || "").toLowerCase().includes("shilpa");
+          (b.notes || "").toLowerCase().includes("swati");
         const doc = isGynae ? "Dr. Swati Gandhi" : "Dr. Rajesh Gandhi";
         const dept = isGynae ? "Obstetrics & Gynaecology" : "Orthopaedics & Joint Replacement";
         const token = String(pastDateBills.length - idx).padStart(2, "0");
