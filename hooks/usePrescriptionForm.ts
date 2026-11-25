@@ -280,7 +280,7 @@ export function usePrescriptionForm() {
     return 'Dr. Rajesh Gandhi';
   });
   const [availableDoctors, setAvailableDoctors] = useState<Doctor[]>([]);
-  const [includeSignature, setIncludeSignature] = useState(true);
+  const [includeSignature, setIncludeSignature] = useState(false);
   const [nextReadyPatient, setNextReadyPatient] = useState<any | null>(null);
   const [movingToNextPatient, setMovingToNextPatient] = useState(false);
 
@@ -2228,7 +2228,7 @@ export function usePrescriptionForm() {
 
     setIsPrintModalOpen(false);
 
-    const hasSig = finalEnabledSections ? finalEnabledSections.signature !== false : includeSignature;
+    const hasSig = includeSignature && (finalEnabledSections ? finalEnabledSections.signature !== false : true);
     const hasHeaderFooter = finalEnabledSections ? finalEnabledSections.header_footer !== false : true;
     const printUrl = `/print-prescription?id=${encodeURIComponent(currentId || 'draft')}&autoPrint=true&withSignature=${hasSig ? 'true' : 'false'}&headerFooter=${hasHeaderFooter ? 'true' : 'false'}`;
     if (printWindow) {

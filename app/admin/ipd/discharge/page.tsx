@@ -50,7 +50,7 @@ function DischargeContent() {
   const [recordPaymentAdmission, setRecordPaymentAdmission] = useState<IPDAdmission | null>(null);
   const [printReceiptData, setPrintReceiptData] = useState<{ patient: IPDAdmission; advance: any } | null>(null);
   const [receiptPageSize, setReceiptPageSize] = useState<"A6" | "A7" | "A4">("A4");
-  const [dischargeIncludeSignature, setDischargeIncludeSignature] = useState(true);
+  const [dischargeIncludeSignature, setDischargeIncludeSignature] = useState(false);
 
   // Quick Payment Modal Form State
   const [editingAdvanceId, setEditingAdvanceId] = useState<string | null>(null);

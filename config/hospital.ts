@@ -125,7 +125,7 @@ export const hospitalConfig: HospitalConfig = {
       designation: "Consulting Orthopaedic and Joint Replacement Surgeon",
       specialty: "orthopaedic",
       email: "drrajeshgandhi@gmail.com",
-      signatureUrl: "/sign.png",
+      signatureUrl: "",
       consultationFee: {
         firstVisit: 400,
         followupVisit: 200,
@@ -141,7 +141,7 @@ export const hospitalConfig: HospitalConfig = {
       subSpecialty: "Maternity, Infertility & Women Care Specialist",
       specialty: "gynecology",
       email: "drswatigandhi@gmail.com",
-      signatureUrl: "/sign1.png",
+      signatureUrl: "",
       consultationFee: {
         firstVisit: 200,
         followupVisit: 100,

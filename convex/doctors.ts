@@ -12,8 +12,8 @@ const DEFAULT_MAIN_DOCTORS = [
     phone: "9917606732",
     status: "ACTIVE" as const,
     joining_date: "2024-01-01",
-    signature_url: "/sign.png",
-    notes: "Chief Dental Surgeon & Founder",
+    signature_url: "",
+    notes: "Orthopaedic & Joint Replacement Surgeon",
   },
   {
     name: "Dr. Swati Gandhi",
@@ -21,8 +21,8 @@ const DEFAULT_MAIN_DOCTORS = [
     commission_percentage: undefined,
     status: "ACTIVE" as const,
     joining_date: "2024-01-01",
-    signature_url: "/sign1.png",
-    notes: "Main Doctor & Dental Surgeon",
+    signature_url: "",
+    notes: "Gynecologist & Obstetrician",
   },
 ];
 

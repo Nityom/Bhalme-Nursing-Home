@@ -161,7 +161,7 @@ export default function IPDManagementPage() {
     receivedBy: "Reception Desk",
     date: new Date().toISOString().split("T")[0],
   });
-  const [dischargeIncludeSignature, setDischargeIncludeSignature] = useState<boolean>(true);
+  const [dischargeIncludeSignature, setDischargeIncludeSignature] = useState<boolean>(false);
   const [receiptPageSize, setReceiptPageSize] = useState<"A6" | "A7" | "A4">("A6");
 
   // Editable Clinical Items & Admission Profile State
