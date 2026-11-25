@@ -180,7 +180,7 @@ export default function AddMedicinePage() {
   };
 
   const countVipeen = medicines.filter(m => (m.doctor_name || 'Both Doctors') === 'Dr. Rajesh Gandhi' || (m.doctor_name || 'Both Doctors') === 'Both Doctors').length;
-  const countShillpa = medicines.filter(m => (m.doctor_name || 'Both Doctors') === 'Dr. Rajesh Gandhi' || (m.doctor_name || 'Both Doctors') === 'Both Doctors').length;
+  const countShillpa = medicines.filter(m => (m.doctor_name || 'Both Doctors') === 'Dr. Swati Gandhi' || (m.doctor_name || 'Both Doctors') === 'Both Doctors').length;
 
   return (
     <div className="min-h-screen bg-white w-full overflow-auto scrollbar-none">
@@ -189,7 +189,7 @@ export default function AddMedicinePage() {
           <header>
             <h1 className="text-3xl font-bold text-gray-800">Medicine Management</h1>
             <p className="text-gray-600 mt-1">
-              Add medicines and compositions to auto-populate prescriptions for Dr. Rajesh Gandhi
+              Add medicines and compositions tagged per doctor (Dr. Rajesh Gandhi / Dr. Swati Gandhi) to auto-populate prescriptions
             </p>
           </header>
           <Link
@@ -257,7 +257,9 @@ export default function AddMedicinePage() {
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition text-sm font-medium"
                   >
-                    <option value="Dr. Rajesh Gandhi">Dr. Rajesh Gandhi</option>
+                    <option value="Both Doctors">Both Doctors (All)</option>
+                    <option value="Dr. Rajesh Gandhi">Dr. Rajesh Gandhi (Orthopaedic)</option>
+                    <option value="Dr. Swati Gandhi">Dr. Swati Gandhi (Gynecology)</option>
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
                     Shows in prescription dropdown when this doctor is selected
@@ -394,7 +396,31 @@ export default function AddMedicinePage() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  All Medicines ({medicines.length})
+                  All Doctors ({medicines.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDoctorFilter('Dr. Rajesh Gandhi')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+                    selectedDoctorFilter === 'Dr. Rajesh Gandhi'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  Dr. Rajesh Gandhi ({countVipeen})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDoctorFilter('Dr. Swati Gandhi')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+                    selectedDoctorFilter === 'Dr. Swati Gandhi'
+                      ? 'bg-purple-700 text-white shadow-xs'
+                      : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+                  Dr. Swati Gandhi ({countShillpa})
                 </button>
               </div>
 
@@ -479,10 +505,10 @@ export default function AddMedicinePage() {
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
                                     Dr. Rajesh Gandhi
                                   </span>
-                                ) : docName === 'Dr. Rajesh Gandhi' ? (
+                                ) : docName === 'Dr. Swati Gandhi' ? (
                                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-purple-100 text-purple-800 px-2.5 py-0.5 rounded-full border border-purple-200">
                                     <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
-                                    Dr. Rajesh Gandhi
+                                    Dr. Swati Gandhi
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full">

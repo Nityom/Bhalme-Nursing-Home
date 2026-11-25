@@ -292,7 +292,7 @@ export default function IpdPrintDischargeModal({
               </div>
               <div className="text-center min-w-[130px]">
                 {dischargeIncludeSignature && (() => {
-                  const isGyn = /shillpa|shilpa|gyn/i.test(admission.consultantDoctor || "");
+                  const isGyn = /swati|shillpa|shilpa|gyn/i.test(admission.consultantDoctor || "");
                   const sigUrl = isGyn ? "/sign1.png" : "/sign.png";
                   return <img src={sigUrl} alt="Signature" className="h-9 mx-auto object-contain" />;
                 })()}

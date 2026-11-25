@@ -179,6 +179,24 @@ function PrintPrescriptionContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [printTimeFormatted, setPrintTimeFormatted] = useState<string>('');
+  const [printTimestampFull, setPrintTimestampFull] = useState<string>('');
+
+  useEffect(() => {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    setPrintTimeFormatted(timeStr);
+
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    setPrintTimestampFull(`${day}-${month}-${year}, ${timeStr}`);
+  }, []);
+
   useEffect(() => {
     if (prescriptionData?.enabled_sections?.header_footer !== undefined && headerFooterParam === null) {
       setIncludeHeaderFooter(prescriptionData.enabled_sections.header_footer !== false);
@@ -333,13 +351,13 @@ function PrintPrescriptionContent() {
               const match = doctors.find((d) => d.name.toLowerCase() === docName.toLowerCase());
               if (match?.signature_url) {
                 setResolvedSignature(match.signature_url);
-              } else if (/shillpa|shilpa|anjali|gyn/i.test(docName)) {
+              } else if (/swati|shillpa|shilpa|anjali|gyn/i.test(docName)) {
                 setResolvedSignature('sign1.png');
               } else {
                 setResolvedSignature('sign.png');
               }
             } catch {
-              setResolvedSignature(paramSig || (/shillpa|shilpa|anjali|gyn/i.test(docName) ? 'sign1.png' : 'sign.png'));
+              setResolvedSignature(paramSig || (/swati|shillpa|shilpa|anjali|gyn/i.test(docName) ? 'sign1.png' : 'sign.png'));
             }
           }
         }
@@ -422,11 +440,11 @@ function PrintPrescriptionContent() {
   }
   const patientNameFormatted = `${salutationPrefix}${rawPatientName.toUpperCase()}`;
 
-  let refNumber = (prescriptionData.reference_number || '').replace(/^CH/i, 'CRX');
-  if (prescriptionData.patient_name?.toLowerCase() === 'testing' && (refNumber === 'CRX0001' || !refNumber)) {
-    refNumber = 'CRX0002';
-  } else if (refNumber === 'CRX0002' && prescriptionData.patient_name?.toLowerCase() !== 'testing') {
-    refNumber = 'CRX0003';
+  let refNumber = (prescriptionData.reference_number || '').replace(/^CH/i, 'GNH');
+  if (prescriptionData.patient_name?.toLowerCase() === 'testing' && (refNumber === 'GNH0001' || !refNumber)) {
+    refNumber = 'GNH0002';
+  } else if (refNumber === 'GNH0002' && prescriptionData.patient_name?.toLowerCase() !== 'testing') {
+    refNumber = 'GNH0003';
   }
   if (!refNumber) refNumber = '00000';
   const rawAge = prescriptionData.age ? String(prescriptionData.age).trim() : '';
@@ -439,8 +457,8 @@ function PrintPrescriptionContent() {
   const activeDoctorProfile = getDoctorProfile(resolvedDoctorName || prescriptionData.doctor_name);
   const isGyno =
     activeDoctorProfile?.specialty === 'gynecology' ||
-    /gyne|shillpa|shilpa|obs|maternity/i.test(resolvedDoctorName || '') ||
-    /gyne|shillpa|shilpa|obs|maternity/i.test(prescriptionData.doctor_name || '');
+    /gyne|swati|shillpa|shilpa|obs|maternity/i.test(resolvedDoctorName || '') ||
+    /gyne|swati|shillpa|shilpa|obs|maternity/i.test(prescriptionData.doctor_name || '');
 
   const vitals = prescriptionData.vitals || (prescriptionData as any).vital_signs || {};
   const bpDisplay = vitals.bp || (vitals.bp_systolic && vitals.bp_diastolic ? `${vitals.bp_systolic}/${vitals.bp_diastolic}` : '') || (vitals.bp_systolic ? `${vitals.bp_systolic}` : '') || (prescriptionData as any).bp || '';
@@ -486,7 +504,6 @@ function PrintPrescriptionContent() {
     'vitals',
     'complaints',
     'diagnosis',
-    'history',
     'findings',
     'drawing_board',
     'medicines',
@@ -823,7 +840,7 @@ function PrintPrescriptionContent() {
             />
           )}
           <div className="sig-doc-name">
-            {resolvedDoctorName || 'Dr Rajesh Gandhi'}
+            {resolvedDoctorName || 'Dr Vipeen Raut'}
           </div>
         </div>
       </div>
@@ -1038,7 +1055,7 @@ function PrintPrescriptionContent() {
         .doctor-title-name {
           font-size: 16pt;
           font-weight: 700;
-          color: #7B1828; /* Bhalme maroon */
+          color: #7B1828; /* Cortex maroon */
           margin: 0;
           line-height: 1.15;
           letter-spacing: -0.2px;
@@ -1517,7 +1534,7 @@ function PrintPrescriptionContent() {
             {/* Top Meta Line */}
             {includeHeaderFooter && (
               <div className="top-meta-row">
-                <span>{formatTimestamp(prescriptionData.prescription_date)}</span>
+                <span>{printTimestampFull || formatTimestamp(prescriptionData.prescription_date)}</span>
                 <span>Svaasth HMS</span>
               </div>
             )}
@@ -1585,6 +1602,7 @@ function PrintPrescriptionContent() {
               </div>
               <div className="patient-date-right">
                 Date: {formatPrescriptionDate(prescriptionData.prescription_date)}
+                {printTimeFormatted ? ` | Time: ${printTimeFormatted}` : ''}
               </div>
             </div>
 

@@ -95,7 +95,7 @@ export default function PrescriptionPastVisitsDashboard({
   onCreateNewVisit,
   onEditPastVisit,
   onCloseDashboard,
-  selectedDoctorName = 'Dr. Rajesh Gandhi',
+  selectedDoctorName = 'Dr. Swati Gandhi',
   handleDoctorSelect,
   availableDoctors = [],
   onOpenEmailModal,
@@ -105,12 +105,12 @@ export default function PrescriptionPastVisitsDashboard({
 }: PrescriptionPastVisitsDashboardProps) {
   // Sort past visits newest first and strictly ensure visits belong to this specific patient
   const sortedVisits = useMemo(() => {
-    const targetRef = patientReference ? patientReference.trim().toUpperCase().replace(/^CH/i, 'CRX') : null;
+    const targetRef = patientReference ? patientReference.trim().toUpperCase().replace(/^CH/i, 'GNH') : null;
     const cleanPhone = (patientPhone || '').replace(/\D/g, '').slice(-10);
     const targetNormName = patientName ? patientName.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, '').replace(/[^a-z0-9]/g, '') : '';
 
     const filtered = pastVisits.filter((v: any) => {
-      const vRef = v.reference_number ? v.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX') : null;
+      const vRef = v.reference_number ? v.reference_number.trim().toUpperCase().replace(/^CH/i, 'GNH') : null;
       const vPhone = (v.phone_number || '').replace(/\D/g, '').slice(-10);
       const vNormName = v.patient_name ? v.patient_name.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, '').replace(/[^a-z0-9]/g, '') : '';
 

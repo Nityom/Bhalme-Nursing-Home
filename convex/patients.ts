@@ -64,7 +64,7 @@ export const create = mutation({
             nextNumber = maxExisting + 1;
             await ctx.db.insert("reference_counter", { counter_id: 1, current_number: nextNumber });
         }
-        const reference_number = `CRX${String(nextNumber).padStart(4, "0")}`;  
+        const reference_number = `GNH${String(nextNumber).padStart(4, "0")}`;  
 
         const newPatientId = await ctx.db.insert("patients", {
             reference_number,
@@ -84,7 +84,7 @@ export const getNextReferenceNumber = query({
     args: {},
     handler: async (ctx) => {
         const allPatients = await ctx.db.query("patients").collect();
-        let maxExisting = 2; // Base minimum since CRX0001 and CRX0002 already exist
+        let maxExisting = 2; // Base minimum since GNH0001 and GNH0002 already exist
         for (const p of allPatients) {
             if (p.reference_number) {
                 const match = p.reference_number.match(/\d+/);
@@ -102,17 +102,17 @@ export const getNextReferenceNumber = query({
         if (counter && counter.current_number >= next) {
             next = counter.current_number + 1;
         }
-        return `CRX${String(next).padStart(4, "0")}`;
+        return `GNH${String(next).padStart(4, "0")}`;
     },
 });
 
-export const migratePrefixToCRX = mutation({
+export const __KEEP_MIGRATE_GNH__ = mutation({
     args: {},
     handler: async (ctx) => {
         const patients = await ctx.db.query("patients").collect();
         for (const p of patients) {
             if (p.reference_number && p.reference_number.startsWith("CH")) {
-                const newRef = p.reference_number.replace(/^CH/i, "CRX");
+                const newRef = p.reference_number.replace(/^CH/i, "GNH");
                 await ctx.db.patch(p._id, { reference_number: newRef });
             }
         }
@@ -170,14 +170,14 @@ export const getByReference = query({
             .first();
         if (exact) return exact;
 
-        const normalized = args.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX');
+        const normalized = args.reference_number.trim().toUpperCase().replace(/^CH/i, 'GNH');
         const alt1 = await ctx.db
             .query("patients")
             .withIndex("by_reference", (q) => q.eq("reference_number", normalized))
             .first();
         if (alt1) return alt1;
 
-        const chAlt = normalized.replace(/^CRX/i, 'CH');
+        const chAlt = normalized.replace(/^GNH/i, 'CH');
         const alt2 = await ctx.db
             .query("patients")
             .withIndex("by_reference", (q) => q.eq("reference_number", chAlt))
@@ -186,7 +186,7 @@ export const getByReference = query({
 
         const all = await ctx.db.query("patients").order("desc").take(100);
         return all.find((p) => {
-            const pRef = (p.reference_number || "").trim().toUpperCase().replace(/^CH/i, 'CRX');
+            const pRef = (p.reference_number || "").trim().toUpperCase().replace(/^CH/i, 'GNH');
             return pRef === normalized;
         }) || null;
     },
@@ -209,15 +209,15 @@ export const search = query({
         }
 
         const upper = rawTerm.toUpperCase();
-        // 1. Direct index lookup for reference numbers (e.g. CRX0115, CH0115) - Reads 1 row
-        if (upper.startsWith("CRX") || upper.startsWith("CH")) {
+        // 1. Direct index lookup for reference numbers (e.g. GNH0115, CH0115) - Reads 1 row
+        if (upper.startsWith("GNH") || upper.startsWith("CH")) {
             const byRef = await ctx.db
                 .query("patients")
                 .withIndex("by_reference", (q) => q.eq("reference_number", upper))
                 .first();
             if (byRef) return [byRef];
 
-            const altRef = upper.startsWith("CH") ? upper.replace(/^CH/i, "CRX") : upper.replace(/^CRX/i, "CH");
+            const altRef = upper.startsWith("CH") ? upper.replace(/^CH/i, "GNH") : upper.replace(/^GNH/i, "CH");
             const altMatch = await ctx.db
                 .query("patients")
                 .withIndex("by_reference", (q) => q.eq("reference_number", altRef))
@@ -286,7 +286,7 @@ export const remove = mutation({
     },
 });
 
-export const mergeSamikshaToCRX0069 = mutation({
+export const mergeSamikshaToGNH0069 = mutation({
     args: {},
     handler: async (ctx) => {
         const isSamikshaMatch = (name?: string, phone?: string, ref?: string) => {
@@ -297,9 +297,9 @@ export const mergeSamikshaToCRX0069 = mutation({
                 (n.includes("samiksha") && (n.includes("varnerkar") || n.includes("saurangpate"))) ||
                 p === "9665651439" ||
                 p === "966561439" ||
-                r === "CRX0069" ||
-                r === "CRX4469" ||
-                r === "CRX7494"
+                r === "GNH0069" ||
+                r === "GNH4469" ||
+                r === "GNH7494"
             );
         };
 
@@ -311,11 +311,11 @@ export const mergeSamikshaToCRX0069 = mutation({
 
         let targetPatientId: any = null;
         if (samikshaMatches.length > 0) {
-            // Pick CRX0069 doc if present, else first match
-            const primaryDoc = samikshaMatches.find(p => p.reference_number === "CRX0069") || samikshaMatches[0];
+            // Pick GNH0069 doc if present, else first match
+            const primaryDoc = samikshaMatches.find(p => p.reference_number === "GNH0069") || samikshaMatches[0];
             targetPatientId = primaryDoc._id;
             await ctx.db.patch(targetPatientId, {
-                reference_number: "CRX0069",
+                reference_number: "GNH0069",
                 name: "samiksha varnerkar",
                 age: "21",
                 sex: "Female",
@@ -329,7 +329,7 @@ export const mergeSamikshaToCRX0069 = mutation({
             }
         } else {
             targetPatientId = await ctx.db.insert("patients", {
-                reference_number: "CRX0069",
+                reference_number: "GNH0069",
                 name: "samiksha varnerkar",
                 age: "21",
                 sex: "Female",
@@ -346,7 +346,7 @@ export const mergeSamikshaToCRX0069 = mutation({
         for (const rx of rxMatches) {
             await ctx.db.patch(rx._id, {
                 patient_name: "samiksha varnerkar",
-                reference_number: "CRX0069",
+                reference_number: "GNH0069",
                 phone_number: "9665651439",
                 age: "21",
                 sex: "Female",
@@ -360,7 +360,7 @@ export const mergeSamikshaToCRX0069 = mutation({
         );
         for (const bill of billMatches) {
             await ctx.db.patch(bill._id, {
-                reference_number: "CRX0069",
+                reference_number: "GNH0069",
                 patient_id: targetPatientId,
             });
         }
@@ -384,7 +384,7 @@ export const mergeSamikshaToCRX0069 = mutation({
                     phone: "9665651439",
                     address: "waigao",
                     age: 21,
-                    doctor_name: "Dr. Rajesh Gandhi",
+                    doctor_name: "Dr. Swati Gandhi",
                 });
                 for (let i = 1; i < items.length; i++) {
                     await ctx.db.delete(items[i]._id);
@@ -400,12 +400,12 @@ export const mergeSamikshaToCRX0069 = mutation({
         if (opdMatches.length > 0) {
             await ctx.db.patch(opdMatches[0]._id, {
                 name: "samiksha varnerkar",
-                uhid: "CRX0069",
+                uhid: "GNH0069",
                 phone: "9665651439",
                 age: "21",
                 sex: "Female",
                 address: "waigao",
-                doctor: "Dr. Rajesh Gandhi",
+                doctor: "Dr. Swati Gandhi",
                 department: "Obstetrics & Gynaecology",
             });
             for (let i = 1; i < opdMatches.length; i++) {
@@ -420,10 +420,10 @@ export const mergeSamikshaToCRX0069 = mutation({
 export const repairLaxmiAndKajal = mutation({
     args: {},
     handler: async (ctx) => {
-        // 1. Ensure Laxmi Meshram is CRX0170
+        // 1. Ensure Laxmi Meshram is GNH0170
         const patient170 = await ctx.db
             .query("patients")
-            .withIndex("by_reference", (q) => q.eq("reference_number", "CRX0170"))
+            .withIndex("by_reference", (q) => q.eq("reference_number", "GNH0170"))
             .first();
 
         let laxmiId = patient170?._id;
@@ -434,7 +434,7 @@ export const repairLaxmiAndKajal = mutation({
                 sex: "Female",
                 phone_number: "9322782585",
                 address: "pulgaon",
-                reference_number: "CRX0170",
+                reference_number: "GNH0170",
             });
         } else {
             laxmiId = await ctx.db.insert("patients", {
@@ -443,14 +443,14 @@ export const repairLaxmiAndKajal = mutation({
                 sex: "Female",
                 phone_number: "9322782585",
                 address: "pulgaon",
-                reference_number: "CRX0170",
+                reference_number: "GNH0170",
             });
         }
 
-        // 2. Ensure Kajal Meshram is CRX0188
+        // 2. Ensure Kajal Meshram is GNH0188
         const patient188 = await ctx.db
             .query("patients")
-            .withIndex("by_reference", (q) => q.eq("reference_number", "CRX0188"))
+            .withIndex("by_reference", (q) => q.eq("reference_number", "GNH0188"))
             .first();
 
         let kajalId = patient188?._id;
@@ -461,7 +461,7 @@ export const repairLaxmiAndKajal = mutation({
                 sex: "Female",
                 phone_number: "9322782585",
                 address: "pulgaon",
-                reference_number: "CRX0188",
+                reference_number: "GNH0188",
             });
         } else {
             kajalId = await ctx.db.insert("patients", {
@@ -470,7 +470,7 @@ export const repairLaxmiAndKajal = mutation({
                 sex: "Female",
                 phone_number: "9322782585",
                 address: "pulgaon",
-                reference_number: "CRX0188",
+                reference_number: "GNH0188",
             });
         }
 
@@ -496,13 +496,13 @@ export const repairLaxmiAndKajal = mutation({
                 if (cleanName.includes("laxmi")) {
                     await ctx.db.patch(item._id, {
                         name: "laxmi meshram",
-                        uhid: "CRX0170",
+                        uhid: "GNH0170",
                         patientId: laxmiId,
                     });
                 } else if (cleanName.includes("kajal")) {
                     await ctx.db.patch(item._id, {
                         name: "kajal meshram",
-                        uhid: "CRX0188",
+                        uhid: "GNH0188",
                         patientId: kajalId,
                     });
                 }

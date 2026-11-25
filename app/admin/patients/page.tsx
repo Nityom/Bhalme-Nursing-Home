@@ -60,7 +60,7 @@ interface PatientWithPrescriptions extends Patient {
 const ViewPatients = () => {
   const [patients, setPatients] = useState<PatientWithPrescriptions[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<PatientWithPrescriptions[]>([]);
-  const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<'All' | 'Dr. Rajesh Gandhi' | 'Dr. Rajesh Gandhi'>('All');
+  const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<'All' | 'Dr. Rajesh Gandhi' | 'Dr. Swati Gandhi'>('All');
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -125,7 +125,7 @@ const ViewPatients = () => {
       patient.prescriptions.forEach((p) => {
         const doc = (p.doctor_name || '').toLowerCase();
         if (doc.includes('shilpa') || doc.includes('shillpa') || doc.includes('gynae')) {
-          docs.add('Dr. Rajesh Gandhi');
+          docs.add('Dr. Swati Gandhi');
         } else {
           docs.add('Dr. Rajesh Gandhi');
         }
@@ -141,7 +141,7 @@ const ViewPatients = () => {
     if (latestRx?.doctor_name) {
       const doc = latestRx.doctor_name.toLowerCase();
       if (doc.includes('shilpa') || doc.includes('shillpa') || doc.includes('gynae')) {
-        return 'Dr. Rajesh Gandhi';
+        return 'Dr. Swati Gandhi';
       }
     }
     return 'Dr. Rajesh Gandhi';
@@ -479,7 +479,7 @@ const ViewPatients = () => {
   }, [patients, getPatientDoctors]);
 
   const gynaeCount = useMemo(() => {
-    return patients.filter((p) => getPatientDoctors(p).includes('Dr. Rajesh Gandhi')).length;
+    return patients.filter((p) => getPatientDoctors(p).includes('Dr. Swati Gandhi')).length;
   }, [patients, getPatientDoctors]);
 
   const filteredConsultationsCount = useMemo(() => {
@@ -487,7 +487,7 @@ const ViewPatients = () => {
       if (selectedDoctorFilter === 'All') return sum + patient.totalVisits;
       const docRxCount = patient.prescriptions.filter((p) => {
         const d = (p.doctor_name || '').toLowerCase();
-        if (selectedDoctorFilter === 'Dr. Rajesh Gandhi') {
+        if (selectedDoctorFilter === 'Dr. Swati Gandhi') {
           return d.includes('shilpa') || d.includes('shillpa');
         }
         return !d.includes('shilpa') && !d.includes('shillpa');
@@ -778,15 +778,15 @@ const ViewPatients = () => {
 
             <button
               type="button"
-              onClick={() => setSelectedDoctorFilter('Dr. Rajesh Gandhi')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${selectedDoctorFilter === 'Dr. Rajesh Gandhi'
+              onClick={() => setSelectedDoctorFilter('Dr. Swati Gandhi')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${selectedDoctorFilter === 'Dr. Swati Gandhi'
                   ? 'bg-pink-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-pink-700 hover:bg-pink-50'
                 }`}
             >
-              <span>Dr. Rajesh Gandhi</span>
+              <span>Dr. Swati Gandhi</span>
               <span className="text-[10px] opacity-80">(Gynae)</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedDoctorFilter === 'Dr. Rajesh Gandhi' ? 'bg-white/25 text-white' : 'bg-pink-100 text-pink-800'
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedDoctorFilter === 'Dr. Swati Gandhi' ? 'bg-white/25 text-white' : 'bg-pink-100 text-pink-800'
                 }`}>
                 {gynaeCount}
               </span>

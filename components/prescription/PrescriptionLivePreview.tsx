@@ -108,7 +108,6 @@ const DEFAULT_PRINT_ORDER = [
   'vitals',
   'complaints',
   'diagnosis',
-  'history',
   'findings',
   'drawing_board',
   'medicines',
@@ -159,7 +158,7 @@ export default function PrescriptionLivePreview({
   const activeDoc = getDoctorProfile(selectedDoctorName);
   const isGyno =
     activeDoc?.specialty === 'gynecology' ||
-    /gyne|shillpa|shilpa|obs|maternity/i.test(selectedDoctorName || '');
+    /gyne|swati|shillpa|shilpa|obs|maternity/i.test(selectedDoctorName || '');
 
   const includeHeaderFooter = enabledSections?.header_footer !== false;
   const chiefComplaintText =
@@ -523,7 +522,7 @@ export default function PrescriptionLivePreview({
                   );
                   const sig = docObj?.signature_url;
                   if (!sig)
-                    return /(shillpa|shilpa|anjali)/i.test(selectedDoctorName || '')
+                    return /(swati|shillpa|shilpa|anjali)/i.test(selectedDoctorName || '')
                       ? '/sign1.png'
                       : '/sign.png';
                   if (
@@ -648,7 +647,7 @@ export default function PrescriptionLivePreview({
         {/* Patient Bar */}
         <div className="flex flex-wrap justify-between items-center py-2 text-xs sm:text-sm font-bold text-black border-b border-slate-300">
           <div className="flex-1 min-w-[240px]">
-            <span>{formData.reference_number || patientReferenceNumber || 'CRX0001'}</span>
+            <span>{formData.reference_number || patientReferenceNumber || 'GNH0001'}</span>
             {formData.token ? (
               <span className="ml-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-800 rounded border border-emerald-200 text-[10px] font-black">
                 Token #{formData.token}

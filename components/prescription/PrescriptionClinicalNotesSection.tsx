@@ -978,7 +978,7 @@ export default function PrescriptionClinicalNotesSection({
             placeholder="General advice for patient (e.g. warm saline rinses, drink plenty of fluids)..."
             className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
           />
-          {!(/gyne|shillpa|shilpa|obs|maternity/i.test(selectedDoctorName || '')) && (
+          {!(/gyne|swati|shillpa|shilpa|obs|maternity/i.test(selectedDoctorName || '')) && (
             <p className="mt-1 text-[11px] font-semibold text-rose-600 flex items-center gap-1">
               <span>*</span> Prescription is valid for 30 days only
             </p>

@@ -2443,7 +2443,7 @@ export default function IPDManagementPage() {
 
       // Directly open print window for the final bill in A4 matching hospital format
       if (activeBillId && typeof window !== "undefined") {
-        const isGynoDoc = /shillpa|shilpa|gyn/i.test(admission.consultantDoctor || "");
+        const isGynoDoc = /swati|shillpa|shilpa|gyn/i.test(admission.consultantDoctor || "");
         const queryParams = new URLSearchParams({
           billId: String(activeBillId),
           type: "ipd",

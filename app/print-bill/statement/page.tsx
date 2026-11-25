@@ -79,7 +79,7 @@ function StatementContent() {
             if (bill.prescription_id) {
               const rx = await convex.query(api.prescriptions.getById, { id: bill.prescription_id as any });
               if (rx?.doctor_name) {
-                const isGyn = /shillpa|shilpa|anjali|gyn/i.test(rx.doctor_name);
+                const isGyn = /swati|shillpa|shilpa|anjali|gyn/i.test(rx.doctor_name);
                 return {
                   signature: isGyn ? 'sign1.png' : 'sign.png',
                   doctorName: rx.doctor_name,
@@ -87,7 +87,7 @@ function StatementContent() {
               }
             }
           } catch {}
-          const isDocGyn = /shillpa|shilpa|anjali|gyn/i.test(doctorNameParam);
+          const isDocGyn = /swati|shillpa|shilpa|anjali|gyn/i.test(doctorNameParam);
           return { signature: isDocGyn ? 'sign1.png' : 'sign.png', doctorName: doctorNameParam };
         };
 

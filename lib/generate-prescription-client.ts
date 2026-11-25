@@ -151,7 +151,7 @@ export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promi
 
   // Load signature image
   const docName = data.doctorName || '';
-  const sigUrl = /shillpa|shilpa|anjali|gyn/i.test(docName) ? '/sign1.png' : '/sign.png';
+  const sigUrl = /swati|shillpa|shilpa|anjali|gyn/i.test(docName) ? '/sign1.png' : '/sign.png';
   let signImageBytes: Uint8Array | null = null;
   try {
     const resp = await fetch(sigUrl);
@@ -326,7 +326,7 @@ export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promi
 
   // 30 days validity notice & generic medical store notice
   const isGyno =
-    /gyne|shillpa|shilpa|obs|maternity/i.test(data.doctorName || '') ||
+    /gyne|swati|shillpa|shilpa|obs|maternity/i.test(data.doctorName || '') ||
     /gyne/i.test((data as any).doctorSpecialty || '');
   if (!isGyno) {
     page.drawText('* Prescription is valid for 30 days only', {

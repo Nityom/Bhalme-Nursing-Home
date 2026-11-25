@@ -79,7 +79,7 @@ export default function IpdDischargedArchiveTab({
       // 2. Doctor filter
       if (selectedDoctor !== "All") {
         const docLower = (adm.consultantDoctor || "").toLowerCase();
-        if (selectedDoctor === "Dr. Rajesh Gandhi") {
+        if (selectedDoctor === "Dr. Swati Gandhi") {
           if (!docLower.includes("shilpa") && !docLower.includes("shillpa")) return false;
         } else if (selectedDoctor === "Dr. Rajesh Gandhi") {
           if (docLower.includes("shilpa") || docLower.includes("shillpa")) return false;
@@ -166,12 +166,12 @@ export default function IpdDischargedArchiveTab({
             </button>
             <button
               type="button"
-              onClick={() => setSelectedDoctor("Dr. Rajesh Gandhi")}
+              onClick={() => setSelectedDoctor("Dr. Swati Gandhi")}
               className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${
-                selectedDoctor === "Dr. Rajesh Gandhi" ? "bg-pink-600 text-white font-bold shadow-2xs" : "text-slate-600 hover:text-pink-700"
+                selectedDoctor === "Dr. Swati Gandhi" ? "bg-pink-600 text-white font-bold shadow-2xs" : "text-slate-600 hover:text-pink-700"
               }`}
             >
-              Dr. Shillpa
+              Dr. Swati
             </button>
           </div>
         </div>
@@ -298,7 +298,7 @@ export default function IpdDischargedArchiveTab({
               {filteredList.map((adm) => {
                 const bill = calculateRunningBill(adm);
                 const finalAmount = adm.finalSettlement?.netTotal ?? bill.grossTotal;
-                const isGyno = /shillpa|shilpa|gyn/i.test(adm.consultantDoctor || "");
+                const isGyno = /swati|shillpa|shilpa|gyn/i.test(adm.consultantDoctor || "");
 
                 return (
                   <tr key={adm.id} className="hover:bg-slate-50/70 transition-colors">

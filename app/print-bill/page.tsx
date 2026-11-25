@@ -152,7 +152,7 @@ function PrintBillContent() {
                 const match = (allDocs || []).find((d: any) => d.name.toLowerCase() === rxDocName.toLowerCase());
                 if (match?.signature_url) {
                   sigUrl = match.signature_url;
-                } else if (/shillpa|shilpa|anjali|gyn/i.test(rxDocName)) {
+                } else if (/swati|shillpa|shilpa|anjali|gyn/i.test(rxDocName)) {
                   sigUrl = 'sign1.png';
                 }
               }
@@ -166,11 +166,11 @@ function PrintBillContent() {
             const match = (allDocs || []).find((d: any) => d.name.toLowerCase() === docName.toLowerCase());
             if (match?.signature_url) {
               sigUrl = match.signature_url;
-            } else if (/shillpa|shilpa|anjali|gyn/i.test(docName)) {
+            } else if (/swati|shillpa|shilpa|anjali|gyn/i.test(docName)) {
               sigUrl = 'sign1.png';
             }
           } catch {
-            if (/shillpa|shilpa|anjali|gyn/i.test(docName)) {
+            if (/swati|shillpa|shilpa|anjali|gyn/i.test(docName)) {
               sigUrl = 'sign1.png';
             }
           }

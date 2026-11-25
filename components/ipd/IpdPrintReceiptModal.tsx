@@ -33,7 +33,7 @@ export function IpdPrintReceiptModal({
   const ptBill = calculateRunningBill(pt);
   const amountWords = numberToWordsINR(adv.amount || 0);
   const allPatientAdvances = pt.advances || [];
-  const isGyno = /shillpa|shilpa|gyn/i.test(pt.consultantDoctor || "");
+  const isGyno = /swati|shillpa|shilpa|gyn/i.test(pt.consultantDoctor || "");
   const docSig = isGyno ? "/sign1.png" : "/sign.png";
 
   return (

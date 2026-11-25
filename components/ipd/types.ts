@@ -169,7 +169,7 @@ export const STORAGE_KEY = "bhalme_ipd_admissions_v1";
 
 export const DOCTORS = [
   { name: "Dr. Rajesh Gandhi", specialty: "Orthopaedics & Joint Replacement" },
-  { name: "Dr. Rajesh Gandhi", specialty: "Obstetrics & Gynaecology" },
+  { name: "Dr. Swati Gandhi", specialty: "Obstetrics & Gynaecology" },
   { name: "Visiting Consultant", specialty: "General & Laparoscopic Surgery" },
 ];
 

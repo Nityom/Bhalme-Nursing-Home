@@ -192,7 +192,7 @@ export default function AppointmentsPage() {
             name: 'samiksha varnerkar',
             phone: '9665651439',
             age: 21,
-            doctor_name: 'Dr. Rajesh Gandhi',
+            doctor_name: 'Dr. Swati Gandhi',
             address: 'waigao',
           };
         }
@@ -774,7 +774,7 @@ export default function AppointmentsPage() {
                   {[
                     { id: 'ALL', label: 'All' },
                     { id: 'Dr. Rajesh Gandhi', label: 'Dr. Rajesh' },
-                    { id: 'Dr. Rajesh Gandhi', label: 'Dr. Shillpa' },
+                    { id: 'Dr. Swati Gandhi', label: 'Dr. Swati' },
                   ].map(d => (
                     <button
                       key={d.id}
@@ -1189,7 +1189,7 @@ export default function AppointmentsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     { name: "Dr. Rajesh Gandhi", title: "Dr. Rajesh Gandhi", specialty: "Orthopaedics & Joint Replacement Surgeon", color: "emerald" },
-                    { name: "Dr. Rajesh Gandhi", title: "Dr. Rajesh Gandhi", specialty: "Obstetrics & Gynaecology Specialist", color: "pink" },
+                    { name: "Dr. Swati Gandhi", title: "Dr. Swati Gandhi", specialty: "Obstetrics & Gynaecology Specialist", color: "pink" },
                   ].map((doc) => {
                     const isSelected = formData.doctor_name === doc.name;
                     return (

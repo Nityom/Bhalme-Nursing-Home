@@ -244,8 +244,8 @@ function DischargeSheetContent() {
     return parseDischargeMeds(admission?.dischargeSummary?.dischargeMeds, admission?.medications);
   }, [admission]);
 
-  const doctorIsGynae = /shillpa|shilpa|gyn/i.test(admission?.consultantDoctor || '');
-  const doctorName = admission?.consultantDoctor || (doctorIsGynae ? 'Dr. Rajesh Gandhi' : 'Dr. Rajesh Gandhi');
+  const doctorIsGynae = /swati|shillpa|shilpa|gyn/i.test(admission?.consultantDoctor || '');
+  const doctorName = admission?.consultantDoctor || (doctorIsGynae ? 'Dr. Swati Gandhi' : 'Dr. Rajesh Gandhi');
   const doctorSigUrl = doctorIsGynae ? '/sign1.png' : '/sign.png';
 
   if (loading) {

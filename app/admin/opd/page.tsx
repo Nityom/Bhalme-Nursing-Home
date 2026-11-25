@@ -77,7 +77,7 @@ interface OPDQueueItem {
 
 const DOCTORS = [
   { name: "Dr. Rajesh Gandhi", specialty: "Orthopaedics & Joint Replacement" },
-  { name: "Dr. Rajesh Gandhi", specialty: "Obstetrics & Gynaecology" },
+  { name: "Dr. Swati Gandhi", specialty: "Obstetrics & Gynaecology" },
 ];
 
 const DEPARTMENTS = [
@@ -302,7 +302,7 @@ const normalizePatientIdentity = (item: OPDQueueItem): OPDQueueItem => {
       ageUnit: "years",
       sex: "Female",
       address: "waigao",
-      doctor: "Dr. Rajesh Gandhi",
+      doctor: "Dr. Swati Gandhi",
       department: "Obstetrics & Gynaecology",
     };
   }
@@ -459,7 +459,7 @@ export default function OPDManagementPage() {
       try {
         const saved = localStorage.getItem("bhalme_opd_doctor_filter");
         if (saved && (saved.includes("Shilpa") || saved.includes("Shillpa"))) {
-          return "Dr. Rajesh Gandhi";
+          return "Dr. Swati Gandhi";
         }
         if (saved && saved.includes("Vipeen")) {
           return "Dr. Rajesh Gandhi";
@@ -1083,7 +1083,7 @@ export default function OPDManagementPage() {
     }
   };
 
-  // Doctor change handler (syncs department & auto-sets female for Dr. Shilpa Raut)
+  // Doctor change handler (syncs department & auto-sets female for Dr. Swati Raut)
   const handleDoctorChange = (doctorName: string) => {
     const docObj = DOCTORS.find((d) => d.name === doctorName);
     const isGyn = isShillpaDoctor(doctorName);
@@ -1685,7 +1685,7 @@ export default function OPDManagementPage() {
           b.total_amount === 100 ||
           (b.notes || "").toLowerCase().includes("gynae") ||
           (b.notes || "").toLowerCase().includes("shilpa");
-        const doc = isGynae ? "Dr. Rajesh Gandhi" : "Dr. Rajesh Gandhi";
+        const doc = isGynae ? "Dr. Swati Gandhi" : "Dr. Rajesh Gandhi";
         const dept = isGynae ? "Obstetrics & Gynaecology" : "Orthopaedics & Joint Replacement";
         const token = String(pastDateBills.length - idx).padStart(2, "0");
         const regDate = b._creationTime ? new Date(b._creationTime) : new Date(`${selectedQueueDate}T09:00:00+05:30`);
@@ -1931,7 +1931,7 @@ export default function OPDManagementPage() {
               <span className="font-medium text-slate-500 text-xs">Doctor:</span>
               {[
                 ["Dr. Rajesh Gandhi", "Dr. Rajesh Gandhi"],
-                ["Dr. Rajesh Gandhi", "Dr. Shilpa Raut"],
+                ["Dr. Swati Gandhi", "Dr. Swati Raut"],
               ].map(([value, label]) => {
                 const isSelected = selectedDoctorFilter.toLowerCase().includes(value.toLowerCase().replace(/dr\.?\s*/i, '').slice(0, 5));
                 const isGyn = isShillpaDoctor(value);

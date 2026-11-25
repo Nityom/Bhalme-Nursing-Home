@@ -67,8 +67,8 @@ const getDoctorConsultationFee = (docName: string, isFollowUpWithin10Days = fals
 const DEFAULT_OPD_PROCEDURES: { name: string; category: "Registration" | "Consultation" | "Investigation" | "Procedure" | "Bed" | "Nursing" | "OT" | "Surgeon" | "Other" | "Medicine"; price: number }[] = [
   { name: "Consultation Fee (Dr. Rajesh Gandhi)", category: "Consultation", price: 400 },
   { name: "Follow-up Consultation (Dr. Rajesh Gandhi)", category: "Consultation", price: 200 },
-  { name: "Consultation Fee (Dr. Rajesh Gandhi)", category: "Consultation", price: 200 },
-  { name: "Follow-up Consultation (Dr. Rajesh Gandhi)", category: "Consultation", price: 100 },
+  { name: "Consultation Fee (Dr. Swati Gandhi)", category: "Consultation", price: 200 },
+  { name: "Follow-up Consultation (Dr. Swati Gandhi)", category: "Consultation", price: 100 },
   { name: "Registration Fee", category: "Registration", price: 100 },
   { name: "Blood Test (CBC / Routine)", category: "Investigation", price: 300 },
   { name: "X-Ray / Digital Radiography", category: "Investigation", price: 300 },
@@ -840,16 +840,16 @@ export default function HospitalBillingPage() {
               </button>
               <button
                 type="button"
-                onClick={() => switchDoctor("Dr. Rajesh Gandhi")}
+                onClick={() => switchDoctor("Dr. Swati Gandhi")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  activeDoctor === "Dr. Rajesh Gandhi"
+                  activeDoctor === "Dr. Swati Gandhi"
                     ? "bg-pink-600 text-white shadow-sm hover:bg-pink-700"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${activeDoctor === "Dr. Rajesh Gandhi" ? "bg-pink-200" : "bg-pink-500"}`} />
-                <span>Dr. Rajesh Gandhi</span>
-                <span className={`text-[10px] ${activeDoctor === "Dr. Rajesh Gandhi" ? "text-pink-100" : "text-slate-400"}`}>(Gynae)</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${activeDoctor === "Dr. Swati Gandhi" ? "bg-pink-200" : "bg-pink-500"}`} />
+                <span>Dr. Swati Gandhi</span>
+                <span className={`text-[10px] ${activeDoctor === "Dr. Swati Gandhi" ? "text-pink-100" : "text-slate-400"}`}>(Gynae)</span>
               </button>
             </div>
 

@@ -17,11 +17,7 @@ const formatPatient = (p: any): Patient => ({
 });
 
 export const migratePatientsToGNH = async () => {
-    try {
-        await convex.mutation(api.patients.migratePrefixToCRX, {});
-    } catch (e) {
-        console.warn("Migration to GNH skipped:", e);
-    }
+    // Prefix migration handled cleanly during read mapping
 };
 
 export const getNextPatientReference = async (): Promise<string> => {

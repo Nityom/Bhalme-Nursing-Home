@@ -1051,8 +1051,8 @@ export function usePrescriptionForm() {
       const doc = med.doctor_name || 'Both Doctors';
       if (selectedDoctorName === 'Dr. Rajesh Gandhi') {
         return doc === 'Dr. Rajesh Gandhi' || doc === 'Both Doctors';
-      } else if (selectedDoctorName === 'Dr. Rajesh Gandhi') {
-        return doc === 'Dr. Rajesh Gandhi' || doc === 'Both Doctors';
+      } else if (selectedDoctorName === 'Dr. Swati Gandhi') {
+        return doc === 'Dr. Swati Gandhi' || doc === 'Both Doctors';
       }
       return true;
     });

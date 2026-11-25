@@ -142,7 +142,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
   };
 
   const getSignatureSrc = (sig?: string) => {
-    const isDocShillpa = /shillpa|shilpa|gyn/i.test(doctorName || '');
+    const isDocShillpa = /swati|shillpa|shilpa|gyn/i.test(doctorName || '');
     if (!sig || sig === 'sign.png' || sig === '/sign.png') {
       return isDocShillpa ? '/sign1.png' : '/sign.png';
     }

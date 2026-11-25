@@ -588,7 +588,7 @@ function DischargeContent() {
       const remainingBalance = Math.max(0, netTotal - totalPaidAmount);
 
       if (activeBillId && typeof window !== "undefined") {
-        const isGynoDoc = /shillpa|shilpa|gyn/i.test(admission.consultantDoctor || "");
+        const isGynoDoc = /swati|shillpa|shilpa|gyn/i.test(admission.consultantDoctor || "");
         const queryParams = new URLSearchParams({
           billId: String(activeBillId),
           type: "ipd",
