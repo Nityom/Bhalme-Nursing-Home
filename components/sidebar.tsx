@@ -83,8 +83,8 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [animateItems, setAnimateItems] = useState<boolean>(false);
-  const [userEmail, setUserEmail] = useState<string>("Dr. Rajesh Gandhi");
-  const [userRole, setUserRole] = useState<string>("admin");
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>("staff");
   const { isAdmin } = useIsAdmin();
 
   useEffect(() => {
@@ -126,7 +126,9 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
 
   useEffect(() => {
     if (pathname) {
-      const current = items.find((item) => pathname.startsWith(item.url));
+      const current = [...items]
+        .sort((a, b) => b.url.length - a.url.length)
+        .find((item) => pathname === item.url || pathname.startsWith(`${item.url}/`));
       if (current) {
         setActiveItem(current.id);
       }
@@ -143,6 +145,15 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
     } catch (error: unknown) {
       console.error('Error during navigation:', error);
       window.location.href = url;
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
     }
   };
 
@@ -246,11 +257,18 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-slate-800 truncate font-medium">{userEmail}</p>
-                  <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded border bg-emerald-50 text-emerald-800 border-emerald-200">
-                    Admin
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded border ${isAdmin ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                    {isAdmin ? 'Admin' : 'Staff'}
                   </span>
                 </div>
               </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors text-xs font-medium cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Logout</span>
+              </button>
               {/* Svaasth HMS Branding */}
               {hospitalConfig.branding.poweredBySvasth && (
                 <div className="pt-2 mt-1 border-t border-gray-100 flex items-center justify-center gap-1.5 text-[11px] text-gray-400 select-none">
@@ -266,8 +284,15 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
                 className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center cursor-pointer"
                 title={userEmail}
               >
-                <span className="text-xs font-semibold text-white">{userEmail ? userEmail.substring(0, 2).toUpperCase() : 'NB'}</span>
+                <span className="text-xs font-semibold text-white">{userEmail ? userEmail.substring(0, 2).toUpperCase() : ''}</span>
               </div>
+              <button
+                onClick={handleLogout}
+                className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
               {/* Svaasth HMS Branding collapsed */}
               {hospitalConfig.branding.poweredBySvasth && (
                 <div className="pt-1 border-t border-gray-100 flex items-center justify-center select-none" title="Powered by Svaasth HMS">
