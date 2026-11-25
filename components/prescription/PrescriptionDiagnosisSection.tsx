@@ -140,34 +140,44 @@ export default function PrescriptionDiagnosisSection({
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const statusTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-save logic directly from table
+  // 3 hours sync interval for Convex backend to avoid function quota consumption
+  const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+
+  // Auto-save logic: 400ms debounce saves immediately to localStorage only.
+  // Convex sync happens strictly at a 3-hour interval.
   const triggerAutoSave = useCallback(
     async (currentList: DiagnosisRow[]) => {
-      const names = currentList.map((d) => d.diagnosis.trim()).filter((n) => n.length >= 2);
+      const names = currentList
+        .flatMap((d) => d.diagnosis.split(/[\n,;]+/))
+        .map((s) => s.trim())
+        .filter((n) => n.length >= 2);
       const summaryStr = names.join(', ');
 
       setSaveStatus('saving');
       try {
-        // 1. Auto-save terms to Convex master catalog for autocomplete suggestions
-        if (names.length > 0) {
-          await saveMultipleDiagnoses(names);
-        }
-
-        // 2. Auto-save diagnosis to active Convex prescription document
-        if (
-          prescriptionId &&
-          prescriptionId !== 'undefined' &&
-          prescriptionId !== 'null' &&
-          !prescriptionId.startsWith('TMP-')
-        ) {
-          await autoSavePrescriptionDiagnosis(prescriptionId, summaryStr);
-        }
-
-        // 3. Save draft to localStorage
+        // 1. Save draft to localStorage immediately (0ms delay, safe, 0 Convex calls)
         try {
           localStorage.setItem('bhalme_diagnosis_draft', summaryStr);
           localStorage.setItem('bhalme_diagnoses_list_draft', JSON.stringify(currentList));
         } catch {}
+
+        // 2. Only sync to Convex after every 3 hours
+        const now = Date.now();
+        const lastSync = Number(localStorage.getItem('bhalme_last_diagnosis_convex_sync') || '0');
+        if (now - lastSync >= THREE_HOURS_MS) {
+          localStorage.setItem('bhalme_last_diagnosis_convex_sync', String(now));
+          if (names.length > 0) {
+            saveMultipleDiagnoses(names).catch(() => {});
+          }
+          if (
+            prescriptionId &&
+            prescriptionId !== 'undefined' &&
+            prescriptionId !== 'null' &&
+            !prescriptionId.startsWith('TMP-')
+          ) {
+            autoSavePrescriptionDiagnosis(prescriptionId, summaryStr).catch(() => {});
+          }
+        }
 
         setSaveStatus('saved');
         if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
@@ -175,7 +185,7 @@ export default function PrescriptionDiagnosisSection({
           setSaveStatus('idle');
         }, 2000);
       } catch (err) {
-        console.error('Diagnosis auto-save failed:', err);
+        console.error('Diagnosis local auto-save failed:', err);
         setSaveStatus('idle');
       }
     },
@@ -187,19 +197,44 @@ export default function PrescriptionDiagnosisSection({
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(() => {
         triggerAutoSave(currentList);
-      }, 600);
+      }, 400);
     },
     [triggerAutoSave]
   );
 
-  // Load suggestions from Convex
+  // Load diagnosis suggestions: cached locally and synced from Convex once every 3 hours
   useEffect(() => {
-    getDiagnosisSuggestions(newDiagnosis, 30)
-      .then((res) => {
-        if (res && res.length > 0) setDbSuggestions(res);
-      })
-      .catch(() => {});
-  }, [newDiagnosis]);
+    let isMounted = true;
+    try {
+      const cached = localStorage.getItem('bhalme_cached_diagnosis_suggestions');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setDbSuggestions(parsed);
+        }
+      }
+    } catch {}
+
+    const now = Date.now();
+    const lastFetch = Number(localStorage.getItem('bhalme_last_diagnosis_suggestions_fetch') || '0');
+    if (now - lastFetch >= THREE_HOURS_MS) {
+      getDiagnosisSuggestions(undefined, 50)
+        .then((res) => {
+          if (isMounted && Array.isArray(res) && res.length > 0) {
+            setDbSuggestions(res);
+            try {
+              localStorage.setItem('bhalme_cached_diagnosis_suggestions', JSON.stringify(res));
+              localStorage.setItem('bhalme_last_diagnosis_suggestions_fetch', String(now));
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Detect upward vs downward dropdown positioning to avoid clipping
   useEffect(() => {
@@ -499,14 +534,25 @@ export default function PrescriptionDiagnosisSection({
 
     const diagText = (item.templateObj?.diagnosis || item.name || '').trim();
     const current = (diagnosisSummary || '').trim();
-    let updatedText = '';
-    const parts = current.split(',').map((p) => p.trim()).filter(Boolean);
-    if (parts.length > 1) {
-      parts[parts.length - 1] = diagText;
-      updatedText = parts.join(', ');
+    const rawParts = current.split(',').map((p) => p.trim());
+    let newParts: string[] = [];
+    if (rawParts.length > 0 && rawParts[rawParts.length - 1] !== '') {
+      newParts = [...rawParts.slice(0, -1), diagText];
     } else {
-      updatedText = diagText;
+      newParts = [...rawParts.filter(Boolean), diagText];
     }
+
+    // Deduplicate: prevent repeating the same keyword
+    const seen = new Set<string>();
+    const uniqueParts: string[] = [];
+    for (const p of newParts) {
+      const lower = p.toLowerCase();
+      if (lower && !seen.has(lower)) {
+        seen.add(lower);
+        uniqueParts.push(p);
+      }
+    }
+    const updatedText = uniqueParts.join(', ');
 
     onUpdateDiagnosisSummary(updatedText);
     const singleRow: DiagnosisRow = {
@@ -599,16 +645,9 @@ export default function PrescriptionDiagnosisSection({
 
   return (
     <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 shadow-2xs">
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-        {/* Left Pill Badge: Diagnosis / Condition */}
-        <div className="px-3.5 py-2 rounded-xl border border-slate-100 bg-slate-50/90 flex items-center gap-2 shrink-0 select-none shadow-2xs w-full sm:w-52">
-          <Folder className="w-4 h-4 text-slate-700 shrink-0" />
-          <span className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight">Diagnosis / Condition</span>
-        </div>
-
-        {/* Right Pill/Box: Actions + Input + Clear */}
-        <div className="relative flex-1 min-h-[42px] px-3 py-1.5 rounded-xl border border-slate-200 bg-white flex items-center gap-2 shadow-2xs focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition">
-          {/* Action Icons: Folder (Templates), Undo */}
+      {/* Input Box with Actions & Clear */}
+      <div className="relative min-h-[42px] px-3 py-1.5 rounded-xl border border-slate-200 bg-white flex items-center gap-2 shadow-2xs focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition">
+        {/* Action Icons: Folder (Templates), Undo */}
           <div className="flex items-center gap-1 text-slate-400 shrink-0">
             <SectionTemplatePicker
               sectionKey="diagnosis"
@@ -709,8 +748,38 @@ export default function PrescriptionDiagnosisSection({
                   }
                 }
               }}
-              placeholder="Add diagnosis / condition..."
+              placeholder="Add diagnosis..."
               className="w-full bg-transparent border-none outline-none text-slate-800 text-xs sm:text-sm font-medium placeholder:text-slate-400"
+              onBlur={() => {
+                const parts = activeVal.split(',').map((p) => p.trim());
+                const seen = new Set<string>();
+                const uniqueParts: string[] = [];
+                for (const p of parts) {
+                  const lower = p.toLowerCase();
+                  if (lower && !seen.has(lower)) {
+                    seen.add(lower);
+                    uniqueParts.push(p);
+                  }
+                }
+                const deduped = uniqueParts.join(', ');
+                if (deduped !== activeVal) {
+                  onUpdateDiagnosisSummary(deduped);
+                  if (deduped.trim()) {
+                    const singleRow: DiagnosisRow = {
+                      id: 'diag_1',
+                      diagnosis: deduped,
+                      snomed_code: '',
+                      duration: '',
+                      date: date || new Date().toISOString().slice(0, 10),
+                    };
+                    setDiagnosesList([singleRow]);
+                    scheduleAutoSave([singleRow]);
+                  } else {
+                    setDiagnosesList([]);
+                    scheduleAutoSave([]);
+                  }
+                }
+              }}
             />
 
             {/* Live Autocomplete suggestions dropdown */}
@@ -761,6 +830,19 @@ export default function PrescriptionDiagnosisSection({
             )}
           </div>
 
+          {/* Auto-save status indicator */}
+          {saveStatus === 'saving' ? (
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md shrink-0 animate-pulse">
+              <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+              <span>Saving...</span>
+            </span>
+          ) : activeVal.trim() ? (
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md shrink-0">
+              <Check className="w-3 h-3 text-emerald-600" />
+              <span>Auto-saved</span>
+            </span>
+          ) : null}
+
           {/* Right Clear Button */}
           <div className="flex items-center gap-1.5 shrink-0 ml-1">
             <div className="w-px h-4 bg-slate-200" />
@@ -775,7 +857,6 @@ export default function PrescriptionDiagnosisSection({
             </button>
           </div>
         </div>
-      </div>
     </div>
   );
 }
