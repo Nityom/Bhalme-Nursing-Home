@@ -440,11 +440,11 @@ function PrintPrescriptionContent() {
   }
   const patientNameFormatted = `${salutationPrefix}${rawPatientName.toUpperCase()}`;
 
-  let refNumber = (prescriptionData.reference_number || '').replace(/^CH/i, 'GNH');
-  if (prescriptionData.patient_name?.toLowerCase() === 'testing' && (refNumber === 'GNH0001' || !refNumber)) {
-    refNumber = 'GNH0002';
-  } else if (refNumber === 'GNH0002' && prescriptionData.patient_name?.toLowerCase() !== 'testing') {
-    refNumber = 'GNH0003';
+  let refNumber = (prescriptionData.reference_number || '').replace(/^CH/i, 'CRX');
+  if (prescriptionData.patient_name?.toLowerCase() === 'testing' && (refNumber === 'CRX0001' || !refNumber)) {
+    refNumber = 'CRX0002';
+  } else if (refNumber === 'CRX0002' && prescriptionData.patient_name?.toLowerCase() !== 'testing') {
+    refNumber = 'CRX0003';
   }
   if (!refNumber) refNumber = '00000';
   const rawAge = prescriptionData.age ? String(prescriptionData.age).trim() : '';
@@ -658,8 +658,18 @@ function PrintPrescriptionContent() {
             <tr>
               <th className="col-med">Medicine</th>
               <th className="col-dosage">Dosage</th>
-              <th className="col-timing">Timing - Freq. - Duration</th>
-              <th className="col-qty">Qty</th>
+              <th
+                className="col-timing"
+                style={!isGyno ? { width: '24%' } : undefined}
+              >
+                {isGyno ? 'Timing - Freq. - Duration' : 'Timing'}
+              </th>
+              <th
+                className="col-qty"
+                style={!isGyno ? { width: '26%', textAlign: 'left' } : undefined}
+              >
+                {isGyno ? 'Qty' : 'Freq. - Duration'}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -668,6 +678,39 @@ function PrintPrescriptionContent() {
                 const qtyVal = typeof med.quantity === 'number' && med.quantity > 0
                   ? med.quantity
                   : calculateMedicineQuantity(med);
+
+                const resolveSingleTimingAndSchedule = () => {
+                  const parts: string[] = [];
+                  if (med.frequency && med.frequency !== 'Daily') {
+                    parts.push(String(med.frequency));
+                  }
+                  if (med.freq_duration) {
+                    parts.push(String(med.freq_duration));
+                  }
+                  if (
+                    med.duration &&
+                    (!med.freq_duration ||
+                      (!String(med.freq_duration).toLowerCase().includes(String(med.duration).toLowerCase()) &&
+                        !/दिवस|महिना|week|day/i.test(String(med.freq_duration))))
+                  ) {
+                    parts.push(`(${med.duration})`);
+                  }
+                  const isBefore = (med.when || '').toLowerCase().includes('before') || (med.when || '').includes('आधी') || (med.when || '').includes('पूर्वी');
+                  let timing = med.timing || med.note || med.time || getTimingFromDosage(med.dosage, med.when);
+                  if (isBefore && timing) {
+                    timing = timing
+                      .replace(/जेवणानंतर/g, 'जेवणाआधी')
+                      .replace(/नाश्त्यानंतर/g, 'नाश्त्याआधी')
+                      .replace(/जेवणापूर्वी/g, 'जेवणाआधी')
+                      .replace(/नाश्त्यापूर्वी/g, 'नाश्त्याआधी');
+                  }
+                  const scheduleText = parts.length > 0
+                    ? parts.join(' • ')
+                    : med.freq_duration ? String(med.freq_duration) : (med.duration ? String(med.duration) : (med.frequency ? String(med.frequency) : '—'));
+                  return { timing, scheduleText };
+                };
+
+                const singleDetails = !(med.schedules && med.schedules.length > 1) ? resolveSingleTimingAndSchedule() : null;
 
                 return (
                   <tr key={index} className="med-row">
@@ -697,50 +740,43 @@ function PrintPrescriptionContent() {
                           {med.schedules.map((s, si) => (
                             <div key={si} className="timing-val text-[8.5pt]">
                               {(s.notes || s.time || s.when) && <div>{s.notes || [s.time, s.when].filter(Boolean).join(' • ')}</div>}
-                              <span className="font-medium">{[s.frequency, s.duration].filter(Boolean).join(' • ') || '—'}</span>
+                              {isGyno && (
+                                <span className="font-medium">{[s.frequency, s.duration].filter(Boolean).join(' • ') || '—'}</span>
+                              )}
                             </div>
                           ))}
                         </div>
                       ) : (
                         <div className="timing-val">
-                          {(() => {
-                             const parts: string[] = [];
-                            if (med.frequency && med.frequency !== 'Daily') {
-                              parts.push(String(med.frequency));
-                            }
-                            if (med.freq_duration) {
-                              parts.push(String(med.freq_duration));
-                            }
-                            if (
-                              med.duration &&
-                              (!med.freq_duration ||
-                                (!String(med.freq_duration).toLowerCase().includes(String(med.duration).toLowerCase()) &&
-                                  !/दिवस|महिना|week|day/i.test(String(med.freq_duration))))
-                            ) {
-                              parts.push(`(${med.duration})`);
-                            }
-                            const isBefore = (med.when || '').toLowerCase().includes('before') || (med.when || '').includes('आधी') || (med.when || '').includes('पूर्वी');
-                            let timing = med.timing || med.note || med.time || getTimingFromDosage(med.dosage, med.when);
-                            if (isBefore && timing) {
-                              timing = timing
-                                .replace(/जेवणानंतर/g, 'जेवणाआधी')
-                                .replace(/नाश्त्यानंतर/g, 'नाश्त्याआधी')
-                                .replace(/जेवणापूर्वी/g, 'जेवणाआधी')
-                                .replace(/नाश्त्यापूर्वी/g, 'नाश्त्याआधी');
-                            }
-                            const scheduleText = parts.length > 0
-                              ? parts.join(' • ')
-                              : med.freq_duration ? String(med.freq_duration) : (med.duration ? String(med.duration) : (med.frequency ? String(med.frequency) : '—'));
-                            return <>{timing && <div>{timing}</div>}<div>{scheduleText}</div></>;
-                          })()}
+                          {singleDetails?.timing && <div>{singleDetails.timing}</div>}
+                          {isGyno && <div>{singleDetails?.scheduleText}</div>}
+                          {!isGyno && !singleDetails?.timing && <div>—</div>}
                         </div>
                       )}
                     </td>
-                    <td className="med-qty-val">
-                      {qtyVal !== undefined && qtyVal !== null && !isNaN(Number(qtyVal))
-                        ? qtyVal
-                        : '—'}
-                    </td>
+                    {isGyno ? (
+                      <td className="med-qty-val">
+                        {qtyVal !== undefined && qtyVal !== null && !isNaN(Number(qtyVal))
+                          ? qtyVal
+                          : '—'}
+                      </td>
+                    ) : (
+                      <td>
+                        {med.schedules && med.schedules.length > 1 ? (
+                          <div className="space-y-1.5">
+                            {med.schedules.map((s, si) => (
+                              <div key={si} className="timing-val text-[8.5pt] font-medium">
+                                {[s.frequency, s.duration].filter(Boolean).join(' • ') || '—'}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="timing-val font-medium">
+                            {singleDetails?.scheduleText || '—'}
+                          </div>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })
