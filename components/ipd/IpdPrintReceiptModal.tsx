@@ -33,7 +33,7 @@ export function IpdPrintReceiptModal({
   const ptBill = calculateRunningBill(pt);
   const amountWords = numberToWordsINR(adv.amount || 0);
   const allPatientAdvances = pt.advances || [];
-  const isGyno = /swati|shillpa|shilpa|gyn/i.test(pt.consultantDoctor || "");
+  const isGyno = /minal|swati|shillpa|shilpa|gyn/i.test(pt.consultantDoctor || "");
   const docSig = isGyno ? "/sign1.png" : "/sign.png";
 
   return (
@@ -181,7 +181,7 @@ export function IpdPrintReceiptModal({
                 className="h-8 w-auto object-contain"
               />
               <h2 className="text-base font-black tracking-tight text-black uppercase">
-                {hospitalConfig.legalName || "GANDHI HOSPITAL"}
+                {hospitalConfig.legalName || "BHALME CLINIC"}
               </h2>
             </div>
             <p className="text-[11px] text-gray-800 mt-0.5">{hospitalConfig.address.fullFormatted}</p>

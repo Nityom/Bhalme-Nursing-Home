@@ -1,14 +1,5 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import ForgotPassword from "@/components/ForgotPassword";
 
 export default function ForgotPasswordPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace("/admin/opd");
-  }, [router]);
-
-  return null;
+  return <ForgotPassword />;
 }

@@ -566,7 +566,7 @@ export default function IPDManagementPage() {
       const dateKey = normalizeAppointmentDate(appointment.date);
       if (!registeredAt || !dateKey) continue;
 
-      const doctor = appointment.doctor_name || "Dr. Rajesh Gandhi";
+      const doctor = appointment.doctor_name || "Dr. Nitin Bhalme";
       const isGynae = /shillpa|gyn/i.test(doctor);
       const patient = patientByPhoneAndName.get(
         `${String(appointment.phone).replace(/\D/g, "").slice(-10)}:${String(appointment.name).trim().toLowerCase()}`
@@ -2443,7 +2443,7 @@ export default function IPDManagementPage() {
 
       // Directly open print window for the final bill in A4 matching hospital format
       if (activeBillId && typeof window !== "undefined") {
-        const isGynoDoc = /swati|shillpa|shilpa|gyn/i.test(admission.consultantDoctor || "");
+        const isGynoDoc = /minal|swati|shillpa|shilpa|gyn/i.test(admission.consultantDoctor || "");
         const queryParams = new URLSearchParams({
           billId: String(activeBillId),
           type: "ipd",

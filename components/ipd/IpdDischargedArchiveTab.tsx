@@ -79,10 +79,10 @@ export default function IpdDischargedArchiveTab({
       // 2. Doctor filter
       if (selectedDoctor !== "All") {
         const docLower = (adm.consultantDoctor || "").toLowerCase();
-        if (selectedDoctor === "Dr. Swati Gandhi") {
-          if (!docLower.includes("swati") && !docLower.includes("swati")) return false;
-        } else if (selectedDoctor === "Dr. Rajesh Gandhi") {
-          if (docLower.includes("swati") || docLower.includes("swati")) return false;
+        if (selectedDoctor === "Dr. Minal Bhalme") {
+          if (!docLower.includes("minal") && !docLower.includes("swati")) return false;
+        } else if (selectedDoctor === "Dr. Nitin Bhalme") {
+          if (docLower.includes("minal") || docLower.includes("swati")) return false;
         }
       }
 
@@ -157,21 +157,21 @@ export default function IpdDischargedArchiveTab({
             </button>
             <button
               type="button"
-              onClick={() => setSelectedDoctor("Dr. Rajesh Gandhi")}
+              onClick={() => setSelectedDoctor("Dr. Nitin Bhalme")}
               className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${
-                selectedDoctor === "Dr. Rajesh Gandhi" ? "bg-emerald-600 text-white font-bold shadow-2xs" : "text-slate-600 hover:text-emerald-700"
+                selectedDoctor === "Dr. Nitin Bhalme" ? "bg-emerald-600 text-white font-bold shadow-2xs" : "text-slate-600 hover:text-emerald-700"
               }`}
             >
-              Dr. Rajesh
+              Dr. Nitin
             </button>
             <button
               type="button"
-              onClick={() => setSelectedDoctor("Dr. Swati Gandhi")}
+              onClick={() => setSelectedDoctor("Dr. Minal Bhalme")}
               className={`px-2 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${
-                selectedDoctor === "Dr. Swati Gandhi" ? "bg-pink-600 text-white font-bold shadow-2xs" : "text-slate-600 hover:text-pink-700"
+                selectedDoctor === "Dr. Minal Bhalme" ? "bg-pink-600 text-white font-bold shadow-2xs" : "text-slate-600 hover:text-pink-700"
               }`}
             >
-              Dr. Swati
+              Dr. Minal
             </button>
           </div>
         </div>
@@ -298,7 +298,7 @@ export default function IpdDischargedArchiveTab({
               {filteredList.map((adm) => {
                 const bill = calculateRunningBill(adm);
                 const finalAmount = adm.finalSettlement?.netTotal ?? bill.grossTotal;
-                const isGyno = /swati|shillpa|shilpa|gyn/i.test(adm.consultantDoctor || "");
+                const isGyno = /minal|swati|shillpa|shilpa|gyn/i.test(adm.consultantDoctor || "");
 
                 return (
                   <tr key={adm.id} className="hover:bg-slate-50/70 transition-colors">

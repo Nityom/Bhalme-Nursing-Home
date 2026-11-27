@@ -77,10 +77,12 @@ export default function AppointmentsPage() {
     sex: 'Male' as 'Male' | 'Female' | 'Other',
     address: '',
     time: '11:00',
-    doctor_name: 'Dr. Rajesh Gandhi',
+    doctor_name: 'Dr. Nitin Bhalme',
     duration_minutes: 30,
     dental_problem: '',
     notes: '',
+    consultation_fee: '300',
+    payment_mode: 'Cash' as 'Cash' | 'Online' | 'Pending',
   });
 
   // Query all appointments for the whole month to show dots/indicators?
@@ -192,7 +194,7 @@ export default function AppointmentsPage() {
             name: 'samiksha varnerkar',
             phone: '9665651439',
             age: 21,
-            doctor_name: 'Dr. Swati Gandhi',
+            doctor_name: 'Dr. Minal Bhalme',
             address: 'waigao',
           };
         }
@@ -294,7 +296,7 @@ export default function AppointmentsPage() {
    * Calculates appointment time starting from current computer system time,
    * automatically exceeding/advancing minute-by-minute if a slot is already taken.
    */
-  const getNextAvailableTime = useCallback((dateStr: string, doctorName: string = 'Dr. Rajesh Gandhi', preferredTime?: string): string => {
+  const getNextAvailableTime = useCallback((dateStr: string, doctorName: string = 'Dr. Nitin Bhalme', preferredTime?: string): string => {
     const now = new Date();
     // Default base time is the current computer system time
     let baseMinutes = now.getHours() * 60 + now.getMinutes();
@@ -369,6 +371,16 @@ export default function AppointmentsPage() {
     if (appt) {
       setEditingId(appt._id);
       const isGyn = isShillpaDoctor(appt.doctor_name);
+      const linkedQueue = Array.isArray(liveOpdQueue)
+        ? (liveOpdQueue as any[]).find((q) => q.appointmentId === String(appt._id))
+        : undefined;
+      const existingFee = linkedQueue?.consultationFee !== undefined ? String(linkedQueue.consultationFee) : '300';
+      const existingPayMode: 'Cash' | 'Online' | 'Pending' =
+        linkedQueue?.paymentStatus === 'PENDING'
+          ? 'Pending'
+          : linkedQueue?.paymentMode === 'Online' || linkedQueue?.paymentMode === 'UPI' || linkedQueue?.paymentMode === 'Card'
+          ? 'Online'
+          : 'Cash';
       setFormData({
         name: appt.name,
         phone: appt.phone,
@@ -376,14 +388,16 @@ export default function AppointmentsPage() {
         sex: isGyn ? 'Female' : ((appt as any).sex || 'Male'),
         address: (appt as any).address || '',
         time: normalizeAppointmentTime(appt.time),
-        doctor_name: appt.doctor_name || 'Dr. Rajesh Gandhi',
+        doctor_name: appt.doctor_name || 'Dr. Nitin Bhalme',
         duration_minutes: appt.duration_minutes || 30,
         dental_problem: appt.dental_problem || '',
         notes: appt.notes || '',
+        consultation_fee: existingFee,
+        payment_mode: existingPayMode,
       });
     } else {
       setEditingId(null);
-      const defaultDoctor = selectedDoctorFilter !== 'ALL' ? selectedDoctorFilter : 'Dr. Rajesh Gandhi';
+      const defaultDoctor = selectedDoctorFilter !== 'ALL' ? selectedDoctorFilter : 'Dr. Nitin Bhalme';
       const defaultTime = getNextAvailableTime(selectedDate, defaultDoctor);
       const isGyn = isShillpaDoctor(defaultDoctor);
       setFormData({
@@ -397,6 +411,8 @@ export default function AppointmentsPage() {
         duration_minutes: 30,
         dental_problem: '',
         notes: '',
+        consultation_fee: '300',
+        payment_mode: 'Cash',
       });
     }
     setPatientSearchQuery('');
@@ -453,13 +469,29 @@ export default function AppointmentsPage() {
         notes: formData.notes || undefined,
       };
 
+      const feeAmount = Math.max(0, Number(formData.consultation_fee) || 0);
+      const isCounterPaid = formData.payment_mode !== 'Pending' && feeAmount > 0;
+      const resolvedPaymentMode: OPDQueueItem['paymentMode'] =
+        formData.payment_mode === 'Pending' ? 'Free / Exempt' : formData.payment_mode;
+      const resolvedPaymentStatus: OPDQueueItem['paymentStatus'] = isCounterPaid ? 'PAID' : 'PENDING';
+
       if (editingId) {
         await updateAppointment({ id: editingId, ...appointmentPayload });
         try {
           let currentQueue: OPDQueueItem[] = [];
           const raw = localStorage.getItem('bhalme_opd_queue_v1');
           if (raw) currentQueue = JSON.parse(raw);
-          const existingQueueItem = currentQueue.find((q) => q.appointmentId === String(editingId));
+          const liveMatch = Array.isArray(liveOpdQueue)
+            ? (liveOpdQueue as any[]).find((q) => q.appointmentId === String(editingId))
+            : undefined;
+          const existingQueueItem =
+            currentQueue.find((q) => q.appointmentId === String(editingId)) ||
+            (liveMatch
+              ? {
+                  ...liveMatch,
+                  id: liveMatch.queue_id || liveMatch._id,
+                }
+              : undefined);
           if (existingQueueItem) {
             const updatedItem: OPDQueueItem = {
               ...existingQueueItem,
@@ -469,8 +501,13 @@ export default function AppointmentsPage() {
               address: formData.address.trim() || existingQueueItem.address,
               doctor: formData.doctor_name || existingQueueItem.doctor,
               time: finalTime,
+              consultationFee: feeAmount,
+              paymentMode: resolvedPaymentMode,
+              paymentStatus: resolvedPaymentStatus,
             };
-            const updatedQueue = currentQueue.map((q) => (q.id === existingQueueItem.id ? updatedItem : q));
+            const updatedQueue = currentQueue.some((q) => q.id === existingQueueItem.id)
+              ? currentQueue.map((q) => (q.id === existingQueueItem.id ? updatedItem : q))
+              : [updatedItem, ...currentQueue];
             localStorage.setItem('bhalme_opd_queue_v1', JSON.stringify(updatedQueue));
             await upsertOpdQueueMutation(updatedItem as any);
           }
@@ -481,10 +518,10 @@ export default function AppointmentsPage() {
 
         // DIRECTLY ADD IN WAITING (NO NEED TO CHECK IN IN OPD)
         try {
-          const docName = formData.doctor_name || hospitalConfig.doctors[0]?.name || 'Dr. Rajesh Gandhi';
-          const dept = docName.toLowerCase().includes('swati')
+          const docName = formData.doctor_name || hospitalConfig.doctors[0]?.name || 'Dr. Nitin Bhalme';
+          const dept = docName.toLowerCase().includes('minal') || docName.toLowerCase().includes('swati')
             ? 'Obstetrics & Gynaecology'
-            : 'Orthopaedics & Joint Replacement';
+            : 'Dermatology & Venereology';
           const isGynae = isShillpaDoctor(docName) || dept.toLowerCase().includes('gynaec');
           const sex = isGynae ? 'Female' : (formData.sex || 'Male');
 
@@ -561,8 +598,9 @@ export default function AppointmentsPage() {
             visitType: isExistingPatient ? 'Routine Follow-up' : 'Appointment',
             status: 'Waiting', // DIRECTLY IN WAITING!
             vitals: {},
-            consultationFee: 0,
-            paymentMode: 'Free / Exempt',
+            consultationFee: feeAmount,
+            paymentMode: resolvedPaymentMode,
+            paymentStatus: resolvedPaymentStatus,
             registeredAt: selectedDate
               ? new Date(`${selectedDate}T${finalTime || '09:00'}:00`).toISOString()
               : new Date().toISOString(),
@@ -773,8 +811,8 @@ export default function AppointmentsPage() {
                 <div className="flex items-center gap-1.5 mt-2.5 overflow-x-auto pb-0.5">
                   {[
                     { id: 'ALL', label: 'All' },
-                    { id: 'Dr. Rajesh Gandhi', label: 'Dr. Rajesh' },
-                    { id: 'Dr. Swati Gandhi', label: 'Dr. Swati' },
+                    { id: 'Dr. Nitin Bhalme', label: 'Dr. Nitin' },
+                    { id: 'Dr. Minal Bhalme', label: 'Dr. Minal' },
                   ].map(d => (
                     <button
                       key={d.id}
@@ -862,9 +900,18 @@ export default function AppointmentsPage() {
             ) : (
               appointmentsForDate.map((appt, index) => {
                 const initials = (appt.name || '?').split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase();
-                const isGynae = (appt.doctor_name || '').toLowerCase().includes('swati');
+                const isGynae = (appt.doctor_name || '').toLowerCase().includes('minal') || (appt.doctor_name || '').toLowerCase().includes('swati');
                 const leftAccent = isGynae ? 'border-l-pink-500' : 'border-l-emerald-600';
                 const avatarColor = isGynae ? 'bg-pink-100 text-pink-700' : 'bg-emerald-100 text-emerald-700';
+                const linkedQueue = Array.isArray(liveOpdQueue)
+                  ? (liveOpdQueue as any[]).find((q) => q.appointmentId === String(appt._id))
+                  : undefined;
+                const linkedFee = linkedQueue?.consultationFee ?? 300;
+                const linkedPaid = linkedQueue?.paymentStatus === 'PAID';
+                const linkedModeCode =
+                  linkedQueue?.paymentMode === 'Online' || linkedQueue?.paymentMode === 'UPI' || linkedQueue?.paymentMode === 'Card'
+                    ? 'O'
+                    : 'C';
 
                 return (
                   <div key={appt._id} className={`rounded-xl bg-white border border-slate-200 shadow-xs border-l-4 ${leftAccent} hover:shadow-md transition-all group`}>
@@ -916,15 +963,33 @@ export default function AppointmentsPage() {
                             <span className="truncate">{(appt as any).address}</span>
                           </p>
                         )}
-                        {appt.doctor_name && (
-                          <span className={`inline-block mt-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                            isGynae
-                              ? 'bg-pink-100 text-pink-800 border border-pink-200'
-                              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                          }`}>
-                            {appt.doctor_name}
-                          </span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          {appt.doctor_name && (
+                            <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                              isGynae
+                                ? 'bg-pink-100 text-pink-800 border border-pink-200'
+                                : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            }`}>
+                              {appt.doctor_name}
+                            </span>
+                          )}
+                          {linkedQueue && (
+                            <span
+                              className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                                linkedPaid
+                                  ? linkedModeCode === 'O'
+                                    ? 'bg-sky-50 text-sky-800 border-sky-200'
+                                    : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : 'bg-amber-50 text-amber-800 border-amber-200'
+                              }`}
+                              title={linkedPaid ? (linkedModeCode === 'O' ? 'Paid Online (O)' : 'Paid Cash (C)') : 'Counter Payment Pending'}
+                            >
+                              <span>₹{linkedFee}</span>
+                              <span>·</span>
+                              <span>{linkedPaid ? linkedModeCode : 'Due'}</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -1188,8 +1253,8 @@ export default function AppointmentsPage() {
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
-                    { name: "Dr. Rajesh Gandhi", title: "Dr. Rajesh Gandhi", specialty: "Orthopaedics & Joint Replacement Surgeon", color: "emerald" },
-                    { name: "Dr. Swati Gandhi", title: "Dr. Swati Gandhi", specialty: "Obstetrics & Gynaecology Specialist", color: "pink" },
+                    { name: "Dr. Nitin Bhalme", title: "Dr. Nitin Bhalme", specialty: "Consulting Dermatologist & Venereologist", color: "emerald" },
+                    { name: "Dr. Minal Bhalme", title: "Dr. Minal Bhalme", specialty: "Obstetrics & Gynaecology Specialist", color: "pink" },
                   ].map((doc) => {
                     const isSelected = formData.doctor_name === doc.name;
                     return (
@@ -1229,6 +1294,69 @@ export default function AppointmentsPage() {
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Counter Fee & Payment Mode */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Counter Fee (₹)
+                  </label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">₹</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={formData.consultation_fee}
+                      onChange={e => setFormData({ ...formData, consultation_fee: e.target.value })}
+                      className="w-full pl-7 pr-3 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold text-slate-900"
+                      placeholder="300"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Payment Mode (Counter)
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, payment_mode: 'Cash' })}
+                      className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        formData.payment_mode === 'Cash'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-gray-200 hover:bg-emerald-50'
+                      }`}
+                    >
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${formData.payment_mode === 'Cash' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'}`}>C</span>
+                      <span>Cash</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, payment_mode: 'Online' })}
+                      className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        formData.payment_mode === 'Online'
+                          ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-gray-200 hover:bg-sky-50'
+                      }`}
+                    >
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${formData.payment_mode === 'Online' ? 'bg-white/20 text-white' : 'bg-sky-100 text-sky-800'}`}>O</span>
+                      <span>Online</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, payment_mode: 'Pending' })}
+                      className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center cursor-pointer ${
+                        formData.payment_mode === 'Pending'
+                          ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
+                          : 'bg-white text-slate-600 border-gray-200 hover:bg-amber-50'
+                      }`}
+                    >
+                      Pending
+                    </button>
+                  </div>
                 </div>
               </div>
 

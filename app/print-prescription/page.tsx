@@ -132,7 +132,7 @@ function PrintPrescriptionContent() {
   const searchParams = useSearchParams();
   const prescriptionId = searchParams.get('prescriptionId') || searchParams.get('id');
   const signatureParam = searchParams.get('signature') || 'sign.png';
-  const doctorNameParam = searchParams.get('doctorName') || 'Dr. Rajesh Gandhi';
+  const doctorNameParam = searchParams.get('doctorName') || 'Dr. Nitin Bhalme';
   const includeSigParam = searchParams.get('includeSignature');
   const headerFooterParam = searchParams.get('headerFooter');
 
@@ -351,13 +351,13 @@ function PrintPrescriptionContent() {
               const match = doctors.find((d) => d.name.toLowerCase() === docName.toLowerCase());
               if (match?.signature_url) {
                 setResolvedSignature(match.signature_url);
-              } else if (/swati|shillpa|shilpa|anjali|gyn/i.test(docName)) {
+              } else if (/minal|swati|shillpa|shilpa|anjali|gyn/i.test(docName)) {
                 setResolvedSignature('sign1.png');
               } else {
                 setResolvedSignature('sign.png');
               }
             } catch {
-              setResolvedSignature(paramSig || (/swati|shillpa|shilpa|anjali|gyn/i.test(docName) ? 'sign1.png' : 'sign.png'));
+              setResolvedSignature(paramSig || (/minal|swati|shillpa|shilpa|anjali|gyn/i.test(docName) ? 'sign1.png' : 'sign.png'));
             }
           }
         }
@@ -457,8 +457,8 @@ function PrintPrescriptionContent() {
   const activeDoctorProfile = getDoctorProfile(resolvedDoctorName || prescriptionData.doctor_name);
   const isGyno =
     activeDoctorProfile?.specialty === 'gynecology' ||
-    /gyne|swati|shillpa|shilpa|obs|maternity/i.test(resolvedDoctorName || '') ||
-    /gyne|swati|shillpa|shilpa|obs|maternity/i.test(prescriptionData.doctor_name || '');
+    /gyne|minal|swati|shillpa|shilpa|obs|maternity/i.test(resolvedDoctorName || '') ||
+    /gyne|minal|swati|shillpa|shilpa|obs|maternity/i.test(prescriptionData.doctor_name || '');
 
   const vitals = prescriptionData.vitals || (prescriptionData as any).vital_signs || {};
   const bpDisplay = vitals.bp || (vitals.bp_systolic && vitals.bp_diastolic ? `${vitals.bp_systolic}/${vitals.bp_diastolic}` : '') || (vitals.bp_systolic ? `${vitals.bp_systolic}` : '') || (prescriptionData as any).bp || '';
@@ -876,7 +876,7 @@ function PrintPrescriptionContent() {
             />
           )}
           <div className="sig-doc-name">
-            {resolvedDoctorName || 'Dr. Rajesh Gandhi'}
+            {resolvedDoctorName || 'Dr. Nitin Bhalme'}
           </div>
         </div>
       </div>

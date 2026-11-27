@@ -32,7 +32,7 @@ export default function ErrorPage({
           </h2>
           <p className="text-xs text-slate-500 leading-relaxed">
             {isChunkError
-              ? "A newer version of Gandhi Hospital HMS was deployed. Please reload the page to apply the latest updates."
+              ? "A newer version of Bhalme Clinic HMS was deployed. Please reload the page to apply the latest updates."
               : error?.message || "An unexpected error occurred while loading this page."}
           </p>
         </div>

@@ -168,13 +168,13 @@ export const BED_CONFIG_STORAGE_KEY = "bhalme_ipd_bed_config_v2";
 export const STORAGE_KEY = "bhalme_ipd_admissions_v1";
 
 export const DOCTORS = [
-  { name: "Dr. Rajesh Gandhi", specialty: "Orthopaedics & Joint Replacement" },
-  { name: "Dr. Swati Gandhi", specialty: "Obstetrics & Gynaecology" },
+  { name: "Dr. Nitin Bhalme", specialty: "Dermatology & Venereology" },
+  { name: "Dr. Minal Bhalme", specialty: "Obstetrics & Gynaecology" },
   { name: "Visiting Consultant", specialty: "General & Laparoscopic Surgery" },
 ];
 
 export const DEPARTMENTS = [
-  "Orthopaedics & Joint Replacement",
+  "Dermatology & Venereology",
   "Obstetrics & Gynaecology",
   "General Medicine",
   "General Surgery",

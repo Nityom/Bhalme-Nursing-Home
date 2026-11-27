@@ -36,7 +36,7 @@ export interface OPDQueueItem {
     temperature?: string;
   };
   consultationFee?: number;
-  paymentMode?: "Cash" | "UPI" | "Card" | "Free / Exempt";
+  paymentMode?: "Cash" | "Online" | "UPI" | "Card" | "Free / Exempt";
   paymentStatus?: "PAID" | "PENDING" | "PARTIAL";
   registeredAt: string;
   time: string;

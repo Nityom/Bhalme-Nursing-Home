@@ -69,19 +69,19 @@ interface OPDQueueItem {
     temperature?: string;
   };
   consultationFee?: number;
-  paymentMode?: "Cash" | "UPI" | "Card" | "Free / Exempt";
+  paymentMode?: "Cash" | "Online" | "UPI" | "Card" | "Free / Exempt";
   paymentStatus?: "PAID" | "PENDING" | "PARTIAL";
   registeredAt: string;
   time: string;
 }
 
 const DOCTORS = [
-  { name: "Dr. Rajesh Gandhi", specialty: "Orthopaedics & Joint Replacement" },
-  { name: "Dr. Swati Gandhi", specialty: "Obstetrics & Gynaecology" },
+  { name: "Dr. Nitin Bhalme", specialty: "Dermatology & Venereology" },
+  { name: "Dr. Minal Bhalme", specialty: "Obstetrics & Gynaecology" },
 ];
 
 const DEPARTMENTS = [
-  "Orthopaedics & Joint Replacement",
+  "Dermatology & Venereology",
   "Obstetrics & Gynaecology",
   "General Medicine",
   "Physiotherapy & Rehabilitation",
@@ -89,7 +89,7 @@ const DEPARTMENTS = [
 
 const getDoctorKey = (docName?: string) => {
   const clean = (docName || "").toLowerCase();
-  if (clean.includes("swati") || clean.includes("swati")) {
+  if (clean.includes("minal") || clean.includes("swati")) {
     return "shillpa";
   }
   return "vipeen";
@@ -302,7 +302,7 @@ const normalizePatientIdentity = (item: OPDQueueItem): OPDQueueItem => {
       ageUnit: "years",
       sex: "Female",
       address: "waigao",
-      doctor: "Dr. Swati Gandhi",
+      doctor: "Dr. Minal Bhalme",
       department: "Obstetrics & Gynaecology",
     };
   }
@@ -411,6 +411,10 @@ const deduplicateOpdQueue = (items: OPDQueueItem[]): OPDQueueItem[] => {
         const mergedId = existing.id.startsWith("opd_") ? existing.id : item.id;
         const mergedStatus = currentRank > existingRank ? item.status : existing.status;
 
+        const existingIsPaid = existing.paymentStatus === "PAID";
+        const itemIsPaid = item.paymentStatus === "PAID";
+        const bestPaymentItem = itemIsPaid && !existingIsPaid ? item : existingIsPaid && !itemIsPaid ? existing : (item.consultationFee ? item : existing);
+
         mergedList[matchIndex] = {
           ...existing,
           ...item,
@@ -421,6 +425,9 @@ const deduplicateOpdQueue = (items: OPDQueueItem[]): OPDQueueItem[] => {
           phone: mergedPhone,
           token: mergedToken,
           status: mergedStatus,
+          consultationFee: bestPaymentItem.consultationFee ?? existing.consultationFee ?? item.consultationFee,
+          paymentMode: bestPaymentItem.paymentMode ?? existing.paymentMode ?? item.paymentMode,
+          paymentStatus: bestPaymentItem.paymentStatus ?? existing.paymentStatus ?? item.paymentStatus,
         };
       }
     }
@@ -458,18 +465,20 @@ export default function OPDManagementPage() {
     if (typeof window !== "undefined") {
       try {
         const saved = localStorage.getItem("bhalme_opd_doctor_filter");
-        if (saved && (saved.includes("Swati") || saved.includes("Swati"))) {
-          return "Dr. Swati Gandhi";
+        if (saved && (saved.includes("Minal") || saved.includes("Swati"))) {
+          return "Dr. Minal Bhalme";
         }
-        if (saved && saved.includes("Vipeen")) {
-          return "Dr. Rajesh Gandhi";
+        if (saved && (saved.includes("Nitin") || saved.includes("Vipeen") || saved.includes("Rajesh"))) {
+          return "Dr. Nitin Bhalme";
         }
       } catch {}
     }
-    return "Dr. Rajesh Gandhi";
+    return "Dr. Nitin Bhalme";
   });
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("All");
   const [queueSearch, setQueueSearch] = useState<string>("");
+  const [editingFeeId, setEditingFeeId] = useState<string | null>(null);
+  const [editingFeeValue, setEditingFeeValue] = useState<string>("300");
 
   // Appointments integration
   const [selectedApptDate, setSelectedApptDate] = useState<string>(getTodayString());
@@ -485,6 +494,8 @@ export default function OPDManagementPage() {
     weight: "",
     height: "",
     temperature: "",
+    consultationFee: "300",
+    paymentMode: "Cash" as "Cash" | "Online" | "Pending",
   });
 
   const liveTodayAppointments = useQuery(api.appointments.getByDate, { date: todayStr });
@@ -624,13 +635,14 @@ export default function OPDManagementPage() {
         doctor,
         department: doctorKey === "shillpa"
           ? "Obstetrics & Gynaecology"
-          : "Orthopaedics & Joint Replacement",
+          : "Dermatology & Venereology",
         priority: "Normal",
         visitType: "Appointment",
         status: "Waiting",
         vitals: {},
-        consultationFee: 0,
-        paymentMode: "Free / Exempt",
+        consultationFee: 300,
+        paymentMode: "Cash",
+        paymentStatus: "PENDING",
         registeredAt,
         time: String(appointment.time),
       } satisfies OPDQueueItem;
@@ -828,6 +840,8 @@ export default function OPDManagementPage() {
     height: "",
     weight: "",
     temperature: "",
+    consultationFee: "300",
+    paymentMode: "Cash" as "Cash" | "Online" | "Pending",
   });
 
   const [existingPatientFound, setExistingPatientFound] = useState<Patient | null>(null);
@@ -1083,7 +1097,7 @@ export default function OPDManagementPage() {
     }
   };
 
-  // Doctor change handler (syncs department & auto-sets female for Dr. Swati Gandhi)
+  // Doctor change handler (syncs department & auto-sets female for Dr. Minal Bhalme)
   const handleDoctorChange = (doctorName: string) => {
     const docObj = DOCTORS.find((d) => d.name === doctorName);
     const isGyn = isShillpaDoctor(doctorName);
@@ -1186,11 +1200,20 @@ export default function OPDManagementPage() {
         );
       });
 
+      const feeAmount = Math.max(0, Number(formData.consultationFee) || 0);
+      const isCounterPaid = formData.paymentMode !== "Pending" && feeAmount > 0;
+      const resolvedPaymentMode: OPDQueueItem["paymentMode"] =
+        formData.paymentMode === "Pending" ? "Free / Exempt" : formData.paymentMode;
+      const resolvedPaymentStatus: OPDQueueItem["paymentStatus"] = isCounterPaid ? "PAID" : "PENDING";
+
       if (existingInToday) {
         const updatedItem: OPDQueueItem = {
           ...existingInToday,
           priority: formData.priority,
           visitType: formData.visitType,
+          consultationFee: feeAmount,
+          paymentMode: resolvedPaymentMode,
+          paymentStatus: resolvedPaymentStatus,
           vitals: {
             ...existingInToday.vitals,
             bp: formData.bp.trim() || existingInToday.vitals?.bp,
@@ -1229,6 +1252,8 @@ export default function OPDManagementPage() {
           height: "",
           weight: "",
           temperature: "",
+          consultationFee: "300",
+          paymentMode: "Cash",
         });
         setExistingPatientFound(null);
         return;
@@ -1267,8 +1292,9 @@ export default function OPDManagementPage() {
           bmi: calculatedBMI || undefined,
           temperature: formData.temperature.trim() || undefined,
         },
-        consultationFee: 0,
-        paymentMode: "Free / Exempt",
+        consultationFee: feeAmount,
+        paymentMode: resolvedPaymentMode,
+        paymentStatus: resolvedPaymentStatus,
         registeredAt: new Date().toISOString(),
         time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
       };
@@ -1308,6 +1334,8 @@ export default function OPDManagementPage() {
         height: "",
         weight: "",
         temperature: "",
+        consultationFee: "300",
+        paymentMode: "Cash",
       });
       setExistingPatientFound(null);
     } catch (err: any) {
@@ -1358,6 +1386,50 @@ export default function OPDManagementPage() {
     }
   };
 
+  // Update fee or payment mode on a queue item
+  const updateQueuePayment = async (
+    id: string,
+    updates: {
+      consultationFee?: number;
+      paymentMode?: OPDQueueItem["paymentMode"];
+      paymentStatus?: OPDQueueItem["paymentStatus"];
+    }
+  ) => {
+    let targetItem: OPDQueueItem | undefined;
+    setQueue((prevQueue) => {
+      const updated = prevQueue.map((item) => {
+        if (item.id === id) {
+          const updatedItem: OPDQueueItem = {
+            ...item,
+            ...updates,
+          };
+          targetItem = updatedItem;
+          return updatedItem;
+        }
+        return item;
+      });
+      saveQueue(updated);
+      return updated;
+    });
+    if (targetItem) {
+      try {
+        await upsertOpdQueueMutation(targetItem);
+      } catch (err) {
+        console.warn("Could not sync payment update to Convex:", err);
+      }
+    }
+  };
+
+  // Quick-set Cash (C) or Online (O) payment in OPD Queue
+  const setQuickPaymentMode = async (item: OPDQueueItem, mode: "Cash" | "Online") => {
+    const fee = item.consultationFee && item.consultationFee > 0 ? item.consultationFee : 300;
+    await updateQueuePayment(item.id, {
+      consultationFee: fee,
+      paymentMode: mode,
+      paymentStatus: "PAID",
+    });
+  };
+
   // Payment status toggle for queue items
   const togglePaymentStatus = async (id: string) => {
     let targetItem: OPDQueueItem | undefined;
@@ -1368,7 +1440,19 @@ export default function OPDManagementPage() {
             item.paymentStatus === "PAID" ||
             (item.paymentStatus !== "PENDING" && paidUhidSet.has((item.uhid || "").trim().toUpperCase()));
           const nextStatus = isCurrentlyPaid ? "PENDING" : "PAID";
-          const updatedItem = { ...item, paymentStatus: nextStatus as any };
+          const nextFee = nextStatus === "PAID" && (!item.consultationFee || item.consultationFee <= 0)
+            ? 300
+            : item.consultationFee;
+          const nextMode: OPDQueueItem["paymentMode"] =
+            nextStatus === "PAID" && (!item.paymentMode || item.paymentMode === "Free / Exempt")
+              ? "Cash"
+              : item.paymentMode;
+          const updatedItem = {
+            ...item,
+            paymentStatus: nextStatus as any,
+            consultationFee: nextFee,
+            paymentMode: nextMode,
+          };
           targetItem = updatedItem;
           return updatedItem;
         }
@@ -1399,6 +1483,14 @@ export default function OPDManagementPage() {
         if (pt.sex) sex = isDocGyn ? "Female" : (pt.sex as any);
       }
     } catch (_) { }
+    const linkedQueue = queue.find((q) => q.appointmentId === String(appt._id));
+    const existingFee = linkedQueue?.consultationFee !== undefined ? String(linkedQueue.consultationFee) : "300";
+    const existingMode: "Cash" | "Online" | "Pending" =
+      linkedQueue?.paymentStatus === "PENDING"
+        ? "Pending"
+        : linkedQueue?.paymentMode === "Online" || linkedQueue?.paymentMode === "UPI" || linkedQueue?.paymentMode === "Card"
+        ? "Online"
+        : "Cash";
     setCheckInVitals({
       age,
       sex: isDocGyn ? "Female" : sex,
@@ -1408,6 +1500,8 @@ export default function OPDManagementPage() {
       weight: "",
       height: "",
       temperature: "",
+      consultationFee: existingFee,
+      paymentMode: existingMode,
     });
   };
 
@@ -1483,9 +1577,9 @@ export default function OPDManagementPage() {
       const nextToken = existingTokens.length > 0 ? Math.max(...existingTokens) + 1 : 1;
       const tokenNumber = String(nextToken).padStart(2, "0");
 
-      const dept = docName.toLowerCase().includes("swati")
+      const dept = docName.toLowerCase().includes("minal") || docName.toLowerCase().includes("swati")
         ? "Obstetrics & Gynaecology"
-        : "Orthopaedics & Joint Replacement";
+        : "Dermatology & Venereology";
 
       const newItem: OPDQueueItem = {
         id: `opd_${Date.now()}`,
@@ -1512,8 +1606,15 @@ export default function OPDManagementPage() {
           weight: customVitals?.weight?.trim() || undefined,
           temperature: customVitals?.temperature?.trim() || undefined,
         },
-        consultationFee: 0,
-        paymentMode: "Free / Exempt",
+        consultationFee: Math.max(0, Number(customVitals?.consultationFee ?? 300) || 0),
+        paymentMode:
+          customVitals?.paymentMode === "Pending"
+            ? "Free / Exempt"
+            : customVitals?.paymentMode || "Cash",
+        paymentStatus:
+          customVitals?.paymentMode !== "Pending" && (Number(customVitals?.consultationFee ?? 300) || 0) > 0
+            ? "PAID"
+            : "PENDING",
         registeredAt: new Date().toISOString(),
         time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
       };
@@ -1684,9 +1785,10 @@ export default function OPDManagementPage() {
           b.total_amount === 200 ||
           b.total_amount === 100 ||
           (b.notes || "").toLowerCase().includes("gynae") ||
+          (b.notes || "").toLowerCase().includes("minal") ||
           (b.notes || "").toLowerCase().includes("swati");
-        const doc = isGynae ? "Dr. Swati Gandhi" : "Dr. Rajesh Gandhi";
-        const dept = isGynae ? "Obstetrics & Gynaecology" : "Orthopaedics & Joint Replacement";
+        const doc = isGynae ? "Dr. Minal Bhalme" : "Dr. Nitin Bhalme";
+        const dept = isGynae ? "Obstetrics & Gynaecology" : "Dermatology & Venereology";
         const token = String(pastDateBills.length - idx).padStart(2, "0");
         const regDate = b._creationTime ? new Date(b._creationTime) : new Date(`${selectedQueueDate}T09:00:00+05:30`);
         const timeStr = regDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" });
@@ -1930,8 +2032,8 @@ export default function OPDManagementPage() {
             <div className="mb-1.5 flex h-8 flex-nowrap shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-xs whitespace-nowrap self-end">
               <span className="font-medium text-slate-500 text-xs">Doctor:</span>
               {[
-                ["Dr. Rajesh Gandhi", "Dr. Rajesh Gandhi"],
-                ["Dr. Swati Gandhi", "Dr. Swati Gandhi"],
+                ["Dr. Nitin Bhalme", "Dr. Nitin Bhalme"],
+                ["Dr. Minal Bhalme", "Dr. Minal Bhalme"],
               ].map(([value, label]) => {
                 const isSelected = selectedDoctorFilter.toLowerCase().includes(value.toLowerCase().replace(/dr\.?\s*/i, '').slice(0, 5));
                 const isGyn = isShillpaDoctor(value);
@@ -1974,7 +2076,7 @@ export default function OPDManagementPage() {
             </div>
             <div>
               <p className="text-sm font-bold">{successNotification}</p>
-              <p className="text-xs text-emerald-700">Patient added to queue. Consultation charge will be applied during final Hospital Billing.</p>
+              <p className="text-xs text-emerald-700">Patient added to queue with counter consultation fee &amp; payment mode.</p>
             </div>
           </div>
           <button
@@ -2152,13 +2254,44 @@ export default function OPDManagementPage() {
             <div className="overflow-hidden rounded-2xl border border-[#e4ece5] bg-white shadow-[0_5px_18px_rgb(27_74_52_/_4%)]">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
                 <div><h2 className="text-lg font-bold text-[#3f5f50]">{activeTab === "waitingQueue" ? "Waiting queue" : activeTab === "billingQueue" ? "Billing queue" : "OPD queue"} <span className="ml-1 font-normal text-slate-500">{activeTab === "waitingQueue" ? "Patients currently waiting for consultation" : activeTab === "billingQueue" ? "Completed consultations ready for billing" : "A live snapshot of your clinic"}</span></h2></div>
-                <button type="button" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-600" onClick={() => setSelectedQueueDate(todayStr)}>
-                  {selectedQueueDate === todayStr ? "Today" : formatDate(selectedQueueDate)}<Calendar className="h-3.5 w-3.5 text-slate-400" />
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {(() => {
+                    let cashTotal = 0;
+                    let onlineTotal = 0;
+                    displayedQueue.forEach((q) => {
+                      const paid = q.paymentStatus === "PAID" || (q.paymentStatus !== "PENDING" && paidUhidSet.has((q.uhid || "").trim().toUpperCase()));
+                      if (!paid) return;
+                      const fee = Number(q.consultationFee) || 0;
+                      if (q.paymentMode === "Online" || q.paymentMode === "UPI" || q.paymentMode === "Card") {
+                        onlineTotal += fee;
+                      } else if (q.paymentMode === "Cash") {
+                        cashTotal += fee;
+                      }
+                    });
+                    return (
+                      <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold">
+                        <span className="inline-flex items-center gap-1 text-emerald-700">
+                          <span className="rounded bg-emerald-600 px-1.5 py-0.2 text-[10px] font-black text-white">C</span>
+                          ₹{cashTotal}
+                        </span>
+                        <span className="text-slate-300">|</span>
+                        <span className="inline-flex items-center gap-1 text-sky-700">
+                          <span className="rounded bg-sky-600 px-1.5 py-0.2 text-[10px] font-black text-white">O</span>
+                          ₹{onlineTotal}
+                        </span>
+                        <span className="text-slate-300">|</span>
+                        <span className="text-slate-700">Total ₹{cashTotal + onlineTotal}</span>
+                      </div>
+                    );
+                  })()}
+                  <button type="button" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-600" onClick={() => setSelectedQueueDate(todayStr)}>
+                    {selectedQueueDate === todayStr ? "Today" : formatDate(selectedQueueDate)}<Calendar className="h-3.5 w-3.5 text-slate-400" />
+                  </button>
+                </div>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1100px] text-left">
-                  <thead><tr className="bg-[#f8faf8] text-xs font-semibold uppercase tracking-[0.1em] text-[#64776c]"><th className="px-5 py-3.5 font-semibold">No.</th><th className="px-4 py-3.5 font-semibold">Patient</th><th className="px-4 py-3.5 font-semibold">Details</th><th className="px-4 py-3.5 font-semibold whitespace-nowrap">Entry Time</th><th className="px-4 py-3.5 font-semibold">Last Visit</th><th className="px-4 py-3.5 font-semibold">Doctor</th><th className="px-4 py-3.5 font-semibold">Status</th><th className="px-5 py-3.5 text-right font-semibold">Actions</th></tr></thead>
+                <table className="w-full min-w-[1180px] text-left">
+                  <thead><tr className="bg-[#f8faf8] text-xs font-semibold uppercase tracking-[0.1em] text-[#64776c]"><th className="px-5 py-3.5 font-semibold">No.</th><th className="px-4 py-3.5 font-semibold">Patient</th><th className="px-4 py-3.5 font-semibold">Details</th><th className="px-4 py-3.5 font-semibold whitespace-nowrap">Entry Time</th><th className="px-4 py-3.5 font-semibold">Last Visit</th><th className="px-4 py-3.5 font-semibold">Doctor</th><th className="px-4 py-3.5 font-semibold whitespace-nowrap">Fee / Mode</th><th className="px-4 py-3.5 font-semibold">Status</th><th className="px-5 py-3.5 text-right font-semibold">Actions</th></tr></thead>
                   <tbody className="divide-y divide-[#edf2ee]">
                     {displayedQueue.map((item, index) => {
                       const uhidNorm = (item.uhid || "").trim().toUpperCase();
@@ -2298,6 +2431,101 @@ export default function OPDManagementPage() {
                           <span className="mt-1 block text-xs text-slate-500">
                             {item.department || "General consultation"}
                           </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {(() => {
+                            const feeVal = item.consultationFee ?? 0;
+                            const isOnlineMode = item.paymentMode === "Online" || item.paymentMode === "UPI" || item.paymentMode === "Card";
+                            const isCashMode = item.paymentMode === "Cash";
+                            const isEditingThis = editingFeeId === item.id;
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1.5">
+                                  {isEditingThis ? (
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      autoFocus
+                                      value={editingFeeValue}
+                                      onChange={(e) => setEditingFeeValue(e.target.value)}
+                                      onBlur={() => {
+                                        const nextFee = Math.max(0, Number(editingFeeValue) || 0);
+                                        setEditingFeeId(null);
+                                        void updateQueuePayment(item.id, {
+                                          consultationFee: nextFee,
+                                          paymentStatus: nextFee > 0 && (isCashMode || isOnlineMode) ? "PAID" : item.paymentStatus,
+                                        });
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          const nextFee = Math.max(0, Number(editingFeeValue) || 0);
+                                          setEditingFeeId(null);
+                                          void updateQueuePayment(item.id, {
+                                            consultationFee: nextFee,
+                                            paymentStatus: nextFee > 0 && (isCashMode || isOnlineMode) ? "PAID" : item.paymentStatus,
+                                          });
+                                        } else if (e.key === "Escape") {
+                                          setEditingFeeId(null);
+                                        }
+                                      }}
+                                      className="w-16 rounded-md border border-emerald-400 bg-white px-1.5 py-0.5 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                                    />
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingFeeId(item.id);
+                                        setEditingFeeValue(String(feeVal || 300));
+                                      }}
+                                      title="Click to edit counter fee amount"
+                                      className={`rounded-md border px-2 py-0.5 text-xs font-bold tabular-nums transition cursor-pointer ${
+                                        isPaid
+                                          ? "border-slate-200 bg-slate-50 text-slate-900 hover:border-emerald-300"
+                                          : "border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300"
+                                      }`}
+                                    >
+                                      ₹{feeVal}
+                                    </button>
+                                  )}
+                                  <div className="inline-flex items-center rounded-md border border-slate-200 bg-white p-0.5 shadow-2xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => setQuickPaymentMode(item, "Cash")}
+                                      title="Cash Payment (C)"
+                                      className={`px-1.5 py-0.5 rounded text-[11px] font-black transition cursor-pointer ${
+                                        isPaid && isCashMode
+                                          ? "bg-emerald-600 text-white shadow-2xs"
+                                          : "text-slate-500 hover:bg-emerald-50 hover:text-emerald-700"
+                                      }`}
+                                    >
+                                      C
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setQuickPaymentMode(item, "Online")}
+                                      title="Online Payment (O)"
+                                      className={`px-1.5 py-0.5 rounded text-[11px] font-black transition cursor-pointer ${
+                                        isPaid && isOnlineMode
+                                          ? "bg-sky-600 text-white shadow-2xs"
+                                          : "text-slate-500 hover:bg-sky-50 hover:text-sky-700"
+                                      }`}
+                                    >
+                                      O
+                                    </button>
+                                  </div>
+                                </div>
+                                <span className={`text-[10px] font-semibold ${
+                                  isPaid
+                                    ? isOnlineMode
+                                      ? "text-sky-700"
+                                      : "text-emerald-700"
+                                    : "text-amber-700"
+                                }`}>
+                                  {isPaid ? (isOnlineMode ? "Online (O) · Paid" : "Cash (C) · Paid") : "Counter Due"}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-4">{activeTab === "billingQueue" ? <span className={`inline-flex rounded-full border px-3 py-2 text-xs font-semibold ${statusStyle}`}>● Completed</span> : <select aria-label={`Status for ${item.name}`} value={effectiveStatus} onChange={(e) => updateStatus(item.id, e.target.value as any)} className={`max-w-[165px] rounded-full border px-3 py-2 text-xs font-semibold outline-none ${statusStyle}`}><option value="Waiting">● Waiting</option><option value="In Consultation">● In consultation</option><option value="Completed">● Completed</option><option value="Cancelled">● Cancelled</option></select>}</td>
                         <td className="px-5 py-3.5"><div className="flex items-center justify-end gap-1.5">
@@ -2776,6 +3004,69 @@ export default function OPDManagementPage() {
                   </select>
                 </div>
               </div>
+
+              {/* Counter Fee & Payment Mode */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Counter Consultation Fee (₹)
+                  </label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">₹</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={formData.consultationFee}
+                      onChange={(e) => setFormData({ ...formData, consultationFee: e.target.value })}
+                      placeholder="300"
+                      className="w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg text-sm font-bold bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Counter Payment Mode
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, paymentMode: "Cash" })}
+                      className={`py-2 px-3 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        formData.paymentMode === "Cash"
+                          ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                          : "bg-white text-slate-700 border-slate-300 hover:bg-emerald-50"
+                      }`}
+                    >
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${formData.paymentMode === "Cash" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-800"}`}>C</span>
+                      <span>Cash</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, paymentMode: "Online" })}
+                      className={`py-2 px-3 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        formData.paymentMode === "Online"
+                          ? "bg-sky-600 text-white border-sky-600 shadow-xs"
+                          : "bg-white text-slate-700 border-slate-300 hover:bg-sky-50"
+                      }`}
+                    >
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${formData.paymentMode === "Online" ? "bg-white/20 text-white" : "bg-sky-100 text-sky-800"}`}>O</span>
+                      <span>Online</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, paymentMode: "Pending" })}
+                      className={`py-2 px-3 rounded-lg border text-xs font-bold transition flex items-center justify-center cursor-pointer ${
+                        formData.paymentMode === "Pending"
+                          ? "bg-amber-500 text-white border-amber-500 shadow-xs"
+                          : "bg-white text-slate-600 border-slate-300 hover:bg-amber-50"
+                      }`}
+                    >
+                      Pending
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Section 3: Clinical Vitals */}
@@ -3029,6 +3320,64 @@ export default function OPDManagementPage() {
                     <option value="Female">Female</option>
                     <option value="Other">Other</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Counter Fee & Payment Mode */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">Counter Fee (₹)</label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">₹</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={checkInVitals.consultationFee}
+                      onChange={(e) => setCheckInVitals({ ...checkInVitals, consultationFee: e.target.value })}
+                      placeholder="300"
+                      className="w-full pl-6 pr-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">Payment Mode</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setCheckInVitals({ ...checkInVitals, paymentMode: "Cash" })}
+                      className={`py-1.5 px-2 rounded-lg border text-[11px] font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+                        checkInVitals.paymentMode === "Cash"
+                          ? "bg-emerald-600 text-white border-emerald-600"
+                          : "bg-white text-slate-700 border-slate-300 hover:bg-emerald-50"
+                      }`}
+                    >
+                      <span>C</span>
+                      <span>Cash</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCheckInVitals({ ...checkInVitals, paymentMode: "Online" })}
+                      className={`py-1.5 px-2 rounded-lg border text-[11px] font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+                        checkInVitals.paymentMode === "Online"
+                          ? "bg-sky-600 text-white border-sky-600"
+                          : "bg-white text-slate-700 border-slate-300 hover:bg-sky-50"
+                      }`}
+                    >
+                      <span>O</span>
+                      <span>Online</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCheckInVitals({ ...checkInVitals, paymentMode: "Pending" })}
+                      className={`py-1.5 px-2 rounded-lg border text-[11px] font-bold transition flex items-center justify-center cursor-pointer ${
+                        checkInVitals.paymentMode === "Pending"
+                          ? "bg-amber-500 text-white border-amber-500"
+                          : "bg-white text-slate-600 border-slate-300 hover:bg-amber-50"
+                      }`}
+                    >
+                      Due
+                    </button>
+                  </div>
                 </div>
               </div>
 

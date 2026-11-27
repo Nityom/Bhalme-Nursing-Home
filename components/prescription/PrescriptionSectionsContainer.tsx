@@ -233,10 +233,10 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
     } catch { }
   };
 
-  const isGynae = (form.selectedDoctorName || '').toLowerCase().includes('swati') ||
+  const isGynae = (form.selectedDoctorName || '').toLowerCase().includes('minal') ||
     (form.selectedDoctorName || '').toLowerCase().includes('swati') ||
     (form.selectedDoctorName || '').toLowerCase().includes('gynae');
-  const doctorCategory = isGynae ? 'Obstetrics & Gynaecology' : 'Orthopaedics';
+  const doctorCategory = isGynae ? 'Obstetrics & Gynaecology' : 'Dermatology';
 
   const renderSectionContent = (sectionKey: PrescriptionSectionKey) => {
     switch (sectionKey) {

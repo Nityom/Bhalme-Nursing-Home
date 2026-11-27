@@ -93,7 +93,7 @@ function RegistersContent() {
     phone_number: '',
     reference_number: '',
     review_date: todayStr,
-    doctor_name: 'Dr. Rajesh Gandhi',
+    doctor_name: 'Dr. Nitin Bhalme',
     chief_complaint_or_treatment: '',
     findings_notes: '',
     status: 'Scheduled',
@@ -106,7 +106,7 @@ function RegistersContent() {
     recall_type: '6-Month Preventive Checkup',
     due_date: todayStr,
     status: 'Due',
-    doctor_name: 'Dr. Rajesh Gandhi',
+    doctor_name: 'Dr. Nitin Bhalme',
     notes: '',
     contacted_date: '',
   });
@@ -117,7 +117,7 @@ function RegistersContent() {
     reference_number: '',
     followup_date: todayStr,
     treatment_summary: '',
-    doctor_name: 'Dr. Rajesh Gandhi',
+    doctor_name: 'Dr. Nitin Bhalme',
     status: 'Pending',
     notes: '',
     next_followup_date: '',
@@ -156,7 +156,7 @@ function RegistersContent() {
     pending_balance: 0,
     payment_mode: 'Cash',
     transaction_reference: '',
-    paid_by: 'Dr. Rajesh Gandhi',
+    paid_by: 'Dr. Nitin Bhalme',
     notes: '',
   });
 
@@ -298,7 +298,7 @@ function RegistersContent() {
         pending_balance: 0,
         payment_mode: 'Cash',
         transaction_reference: '',
-        paid_by: 'Dr. Rajesh Gandhi',
+        paid_by: 'Dr. Nitin Bhalme',
         notes: '',
       });
     }
@@ -374,7 +374,7 @@ function RegistersContent() {
       pending_balance: 0,
       payment_mode: 'Cash',
       transaction_reference: '',
-      paid_by: 'Dr. Rajesh Gandhi',
+      paid_by: 'Dr. Nitin Bhalme',
       notes: '',
     });
     setIsModalOpen(true);
@@ -1360,7 +1360,7 @@ function RegistersContent() {
                         type="text"
                         value={staffPaymentForm.paid_by || ''}
                         onChange={(e) => setStaffPaymentForm({ ...staffPaymentForm, paid_by: e.target.value })}
-                        placeholder="Dr. Rajesh Gandhi"
+                        placeholder="Dr. Nitin Bhalme"
                         className="w-full px-3 py-1.5 border rounded-lg"
                       />
                     </div>

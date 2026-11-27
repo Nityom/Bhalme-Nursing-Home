@@ -20,7 +20,7 @@ export function BillHistoryWithPayments({
   bills,
   onBillUpdated,
   defaultSignature = 'sign.png',
-  defaultDoctorName = 'Dr. Rajesh Gandhi',
+  defaultDoctorName = 'Dr. Nitin Bhalme',
 }: BillHistoryWithPaymentsProps) {
   const [expandedBillId, setExpandedBillId] = useState<string | null>(null);
   const [showAddPayment, setShowAddPayment] = useState(false);

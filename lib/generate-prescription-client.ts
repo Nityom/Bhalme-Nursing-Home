@@ -151,7 +151,7 @@ export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promi
 
   // Load signature image
   const docName = data.doctorName || '';
-  const sigUrl = /swati|shillpa|shilpa|anjali|gyn/i.test(docName) ? '/sign1.png' : '/sign.png';
+  const sigUrl = /minal|swati|shillpa|shilpa|anjali|gyn/i.test(docName) ? '/sign1.png' : '/sign.png';
   let signImageBytes: Uint8Array | null = null;
   try {
     const resp = await fetch(sigUrl);
@@ -180,7 +180,7 @@ export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promi
   let y = PAGE_H - 40;
 
   // Header
-  const clinicName = 'GANDHI HOSPITAL';
+  const clinicName = 'BHALME CLINIC';
   const clinicNameW = boldFont.widthOfTextAtSize(clinicName, 18);
   page.drawText(clinicName, {
     x: (PAGE_W - clinicNameW) / 2, y,
@@ -209,7 +209,7 @@ export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promi
   const infoRows: [string, string, string, string][] = [
     ['Patient Name', data.patientName || '—', 'UHID / Number', data.referenceNumber || '—'],
     ['Age', data.age || '—', 'Date', formatDate(data.date)],
-    ['Sex', data.sex || '—', 'Doctor', data.doctorName || 'Dr. Rajesh Gandhi'],
+    ['Sex', data.sex || '—', 'Doctor', data.doctorName || 'Dr. Nitin Bhalme'],
   ];
   if (data.followupDate) {
     infoRows.push(['Visit Type', 'Consultation', 'Follow-up', formatDate(data.followupDate)]);
@@ -326,7 +326,7 @@ export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promi
 
   // 30 days validity notice & generic medical store notice
   const isGyno =
-    /gyne|swati|shillpa|shilpa|obs|maternity/i.test(data.doctorName || '') ||
+    /gyne|minal|swati|shillpa|shilpa|obs|maternity/i.test(data.doctorName || '') ||
     /gyne/i.test((data as any).doctorSpecialty || '');
   if (!isGyno) {
     page.drawText('* Prescription is valid for 30 days only', {

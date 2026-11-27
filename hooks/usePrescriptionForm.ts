@@ -281,7 +281,7 @@ export function usePrescriptionForm() {
         if (savedDoc) return savedDoc;
       } catch {}
     }
-    return 'Dr. Rajesh Gandhi';
+    return 'Dr. Nitin Bhalme';
   });
   const [availableDoctors, setAvailableDoctors] = useState<Doctor[]>([]);
   const [includeSignature, setIncludeSignature] = useState(false);
@@ -295,8 +295,8 @@ export function usePrescriptionForm() {
     if (typeof window !== 'undefined') {
       try {
         const p = new URLSearchParams(window.location.search);
-        const qDoc = p.get('doctorName') || p.get('doctor') || p.get('doc') || localStorage.getItem('bhalme_active_doctor') || 'Dr. Rajesh Gandhi';
-        const isGynae = qDoc.toLowerCase().includes('swati') || qDoc.toLowerCase().includes('swati');
+        const qDoc = p.get('doctorName') || p.get('doctor') || p.get('doc') || localStorage.getItem('bhalme_active_doctor') || 'Dr. Nitin Bhalme';
+        const isGynae = qDoc.toLowerCase().includes('minal') || qDoc.toLowerCase().includes('swati');
         return isGynae ? 200 : 400;
       } catch {}
     }
@@ -408,7 +408,7 @@ export function usePrescriptionForm() {
   // Detect if current doctor is Gynae specialist
   const isGynaeDoc = useMemo(() => {
     const doc = (selectedDoctorName || '').toLowerCase();
-    return doc.includes('swati') || doc.includes('swati') || doc.includes('gyn');
+    return doc.includes('minal') || doc.includes('swati') || doc.includes('gyn');
   }, [selectedDoctorName]);
 
   // Previous visit prescription cache for restoring fields via Undo button
@@ -644,11 +644,11 @@ export function usePrescriptionForm() {
   const [isSaveTemplateModalOpen, setIsSaveTemplateModalOpen] = useState(false);
   const [savedTemplatesList, setSavedTemplatesList] = useState<PrescriptionTemplate[]>([]);
   const [templateCategoryFilter, setTemplateCategoryFilter] = useState(() => {
-    return isGynaeDoc ? 'Gynaecology' : 'Orthopaedics';
+    return isGynaeDoc ? 'Gynaecology' : 'Dermatology';
   });
   const [templateNameInput, setTemplateNameInput] = useState('');
   const [templateCategoryInput, setTemplateCategoryInput] = useState(() => {
-    return isGynaeDoc ? 'Gynaecology' : 'Orthopaedics';
+    return isGynaeDoc ? 'Gynaecology' : 'Dermatology';
   });
 
   // Toast State
@@ -1034,12 +1034,12 @@ export function usePrescriptionForm() {
   const handleDoctorSelect = (docName: string) => {
     setSelectedDoctorName(docName);
     const feeConfig = resolveDoctorFeeConfig(docName, liveDoctors);
-    const isDocGyn = docName.toLowerCase().includes('swati') || docName.toLowerCase().includes('gyn');
+    const isDocGyn = docName.toLowerCase().includes('minal') || docName.toLowerCase().includes('swati') || docName.toLowerCase().includes('gyn');
     if (isDocGyn) {
       setFormData((prev: any) => ({ ...prev, sex: 'Female' }));
     }
-    setTemplateCategoryInput(isDocGyn ? 'Gynaecology' : 'Orthopaedics');
-    setTemplateCategoryFilter(isDocGyn ? 'Gynaecology' : 'Orthopaedics');
+    setTemplateCategoryInput(isDocGyn ? 'Gynaecology' : 'Dermatology');
+    setTemplateCategoryFilter(isDocGyn ? 'Gynaecology' : 'Dermatology');
     const fee = isNewPatient ? feeConfig.firstVisit : feeConfig.followupVisit;
     setConsultationCharge(fee);
     try {
@@ -1051,10 +1051,10 @@ export function usePrescriptionForm() {
   const filteredMedicineOptions = useMemo(() => {
     return medicineOptions.filter((med) => {
       const doc = med.doctor_name || 'Both Doctors';
-      if (selectedDoctorName === 'Dr. Rajesh Gandhi') {
-        return doc === 'Dr. Rajesh Gandhi' || doc === 'Both Doctors';
-      } else if (selectedDoctorName === 'Dr. Swati Gandhi') {
-        return doc === 'Dr. Swati Gandhi' || doc === 'Both Doctors';
+      if (selectedDoctorName === 'Dr. Nitin Bhalme') {
+        return doc === 'Dr. Nitin Bhalme' || doc === 'Both Doctors';
+      } else if (selectedDoctorName === 'Dr. Minal Bhalme') {
+        return doc === 'Dr. Minal Bhalme' || doc === 'Both Doctors';
       }
       return true;
     });
@@ -1623,7 +1623,7 @@ export function usePrescriptionForm() {
     const saved = saveTemplateService({
       name: finalName,
       diagnosis: diagText,
-      category: templateCategoryInput || (isGynaeDoc ? 'Gynaecology' : 'Orthopaedics'),
+      category: templateCategoryInput || (isGynaeDoc ? 'Gynaecology' : 'Dermatology'),
       doctor_name: selectedDoctorName,
       complaints: complaintsList.map((c) => ({
         complaint: c.complaint,
@@ -1683,7 +1683,7 @@ export function usePrescriptionForm() {
           }
           setIsNewPatient(false);
 
-          const isGynae = (selectedDoctorName || '').toLowerCase().includes('swati') || (selectedDoctorName || '').toLowerCase().includes('gyn');
+          const isGynae = (selectedDoctorName || '').toLowerCase().includes('minal') || (selectedDoctorName || '').toLowerCase().includes('swati') || (selectedDoctorName || '').toLowerCase().includes('gyn');
           const feeConfig = resolveDoctorFeeConfig(selectedDoctorName, liveDoctors);
 
           // Check if patient visited within doctor's followup validity days
@@ -1832,7 +1832,7 @@ export function usePrescriptionForm() {
         })),
         advice: allAdvice || undefined,
         followup_date: formData.followupDate || undefined,
-        doctor_name: selectedDoctorName || 'Dr. Rajesh Gandhi',
+        doctor_name: selectedDoctorName || 'Dr. Nitin Bhalme',
         opd_visit_id: opdVisitId || undefined,
         vitals: {
           bp: bpFull,
@@ -1868,7 +1868,7 @@ export function usePrescriptionForm() {
           phoneNumber: formData.phoneNumber,
           patientName: formData.patientName,
           prescriptionId: savedPrescription.id,
-          doctorName: selectedDoctorName || 'Dr. Rajesh Gandhi',
+          doctorName: selectedDoctorName || 'Dr. Nitin Bhalme',
           date: formData.date,
           diagnosis: allDiagnoses,
         }).catch((err) => console.warn('Could not send prescription WhatsApp link:', err));
@@ -2147,7 +2147,7 @@ export function usePrescriptionForm() {
     const docObj = availableDoctors.find(
       (d) => d.name.toLowerCase() === (selectedDoctorName || '').toLowerCase()
     );
-    const docName = docObj?.name || selectedDoctorName || 'Dr. Rajesh Gandhi';
+    const docName = docObj?.name || selectedDoctorName || 'Dr. Nitin Bhalme';
 
     const allComplaints = complaintsList.length > 0
       ? complaintsList.map((c) => c.complaint).filter(Boolean).join(', ')
@@ -2328,7 +2328,7 @@ export function usePrescriptionForm() {
         if (qOpdId) setOpdVisitId(qOpdId);
         if (qDoctor) {
           setSelectedDoctorName(qDoctor);
-          const isGynae = qDoctor.toLowerCase().includes('swati') || qDoctor.toLowerCase().includes('swati');
+          const isGynae = qDoctor.toLowerCase().includes('minal') || qDoctor.toLowerCase().includes('swati');
           setConsultationCharge(isGynae ? 200 : 400);
         }
 
@@ -2433,7 +2433,7 @@ export function usePrescriptionForm() {
               if (shouldShowDashboard) {
                 setShowPastDashboard(true);
                 setActiveTab('View Past');
-                const isGynaeDoc = (existing.doctor_name || selectedDoctorName || '').toLowerCase().includes('swati') || (existing.doctor_name || selectedDoctorName || '').toLowerCase().includes('swati');
+                const isGynaeDoc = (existing.doctor_name || selectedDoctorName || '').toLowerCase().includes('minal') || (existing.doctor_name || selectedDoctorName || '').toLowerCase().includes('swati');
                 if (isGynaeDoc) {
                   autoPopulateAntenatalFromPastRx(effectiveList, todayDate);
                 }
@@ -2480,7 +2480,7 @@ export function usePrescriptionForm() {
           const qLmp = params.get('lmp');
           if (qLmp) setLmpDate(qLmp);
 
-          const isGynaeDoc = (qDoctor || selectedDoctorName || '').toLowerCase().includes('swati') || (qDoctor || selectedDoctorName || '').toLowerCase().includes('swati');
+          const isGynaeDoc = (qDoctor || selectedDoctorName || '').toLowerCase().includes('minal') || (qDoctor || selectedDoctorName || '').toLowerCase().includes('swati');
 
           let patientRef = qReference;
           if (qReference) {

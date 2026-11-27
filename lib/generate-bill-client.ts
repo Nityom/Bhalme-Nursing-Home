@@ -104,10 +104,10 @@ export function generateBillDoc(billData: BillData): jsPDF {
 
   doc.setProperties({
     title: `Bill - ${billData.patient.name}`,
-    author: billData.clinic?.name || 'Gandhi Hospital',
-    subject: 'Hospital Bill',
-    keywords: 'hospital, invoice, bill',
-    creator: 'Gandhi Hospital Billing System',
+    author: billData.clinic?.name || 'Bhalme Clinic',
+    subject: 'Clinic Bill',
+    keywords: 'clinic, invoice, bill',
+    creator: 'Bhalme Clinic Billing System',
   });
 
   const primaryColor = '#1a56db'; // Blue
@@ -130,17 +130,17 @@ export function generateBillDoc(billData: BillData): jsPDF {
   // Clinic Header
   doc.setTextColor(primaryColor);
   doc.setFontSize(18);
-  centerText('Gandhi Hospital', yPos, 18);
+  centerText('Bhalme Clinic', yPos, 18);
   yPos += 7;
 
   doc.setTextColor('#666666');
   doc.setFontSize(10);
-  centerText('Professional Medical & Healthcare Services', yPos, 10);
+  centerText('Dermatology, Venereology & Obstetrics-Gynaecology Clinic', yPos, 10);
   yPos += 15;
 
   doc.setFontSize(8);
   centerText(
-    'Beside Urich Mall, Aarti Square, Mohini Nagar, Nagpur Road, Wardha (M.S) - 442001',
+    'Station Road, Wardha (M.S.) - 442001',
     yPos,
     8
   );
@@ -148,7 +148,7 @@ export function generateBillDoc(billData: BillData): jsPDF {
   centerText('Maharashtra, India - 442001', yPos, 8);
   yPos += 4;
   centerText(
-    'Phone: +91 9373280505 | Email: drrajeshgandhi@gmail.com',
+    'Enquiry: 7385381369 | WhatsApp: 9422144878 | Email: bhalmeclinic@gmail.com',
     yPos,
     8
   );
@@ -507,7 +507,7 @@ export function generateBillDoc(billData: BillData): jsPDF {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   centerText(
-    'Thank you for choosing Gandhi Hospital for your healthcare needs.',
+    'Thank you for choosing Bhalme Clinic for your healthcare needs.',
     yPos,
     9
   );
@@ -601,7 +601,7 @@ export function convertBillRecordToBillData(
 
   return {
     clinic: {
-      name: 'Gandhi Hospital',
+      name: 'Bhalme Clinic',
     },
     patient: {
       name: patientDetails?.name || bill.patient_name || 'Patient',

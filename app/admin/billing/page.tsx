@@ -67,10 +67,10 @@ const getDoctorConsultationFee = (docName: string, isFollowUpWithin10Days = fals
 };
 
 const DEFAULT_OPD_PROCEDURES: { name: string; category: "Registration" | "Consultation" | "Investigation" | "Procedure" | "Bed" | "Nursing" | "OT" | "Surgeon" | "Other" | "Medicine"; price: number }[] = [
-  { name: "Consultation Fee (Dr. Rajesh Gandhi)", category: "Consultation", price: 400 },
-  { name: "Follow-up Consultation (Dr. Rajesh Gandhi)", category: "Consultation", price: 200 },
-  { name: "Consultation Fee (Dr. Swati Gandhi)", category: "Consultation", price: 200 },
-  { name: "Follow-up Consultation (Dr. Swati Gandhi)", category: "Consultation", price: 100 },
+  { name: "Consultation Fee (Dr. Nitin Bhalme)", category: "Consultation", price: 400 },
+  { name: "Follow-up Consultation (Dr. Nitin Bhalme)", category: "Consultation", price: 300 },
+  { name: "Consultation Fee (Dr. Minal Bhalme)", category: "Consultation", price: 200 },
+  { name: "Follow-up Consultation (Dr. Minal Bhalme)", category: "Consultation", price: 100 },
   { name: "Registration Fee", category: "Registration", price: 100 },
   { name: "Blood Test (CBC / Routine)", category: "Investigation", price: 300 },
   { name: "X-Ray / Digital Radiography", category: "Investigation", price: 300 },
@@ -94,7 +94,7 @@ export default function HospitalBillingPage() {
   const [activeTab, setActiveTab] = useState<"opd" | "history">("opd");
 
   // Active Doctor Persistence
-  const [activeDoctor, setActiveDoctor] = useState<string>("Dr. Rajesh Gandhi");
+  const [activeDoctor, setActiveDoctor] = useState<string>("Dr. Nitin Bhalme");
   const [linkedPrescriptionId, setLinkedPrescriptionId] = useState<string | null>(null);
   const [linkedOpdVisitId, setLinkedOpdVisitId] = useState<string | null>(null);
 
@@ -144,7 +144,7 @@ export default function HospitalBillingPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    let savedDoc = "Dr. Rajesh Gandhi";
+    let savedDoc = "Dr. Nitin Bhalme";
     try {
       const saved = localStorage.getItem("bhalme_active_doctor");
       if (saved) {
@@ -214,7 +214,7 @@ export default function HospitalBillingPage() {
 
       const isFollowUp = resolvedVisit.toLowerCase().includes("follow");
       const qConsultFee = params.get("consultationFee");
-      const effectiveDoc = qDoc || savedDoc || "Dr. Rajesh Gandhi";
+      const effectiveDoc = qDoc || savedDoc || "Dr. Nitin Bhalme";
       const defaultFee =
         qConsultFee && !isNaN(Number(qConsultFee)) && Number(qConsultFee) > 0
           ? Number(qConsultFee)
@@ -831,29 +831,29 @@ export default function HospitalBillingPage() {
               </span>
               <button
                 type="button"
-                onClick={() => switchDoctor("Dr. Rajesh Gandhi")}
+                onClick={() => switchDoctor("Dr. Nitin Bhalme")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  activeDoctor === "Dr. Rajesh Gandhi"
+                  activeDoctor === "Dr. Nitin Bhalme"
                     ? "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${activeDoctor === "Dr. Rajesh Gandhi" ? "bg-emerald-200" : "bg-emerald-500"}`} />
-                <span>Dr. Rajesh Gandhi</span>
-                <span className={`text-[10px] ${activeDoctor === "Dr. Rajesh Gandhi" ? "text-emerald-100" : "text-slate-400"}`}>(Ortho)</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${activeDoctor === "Dr. Nitin Bhalme" ? "bg-emerald-200" : "bg-emerald-500"}`} />
+                <span>Dr. Nitin Bhalme</span>
+                <span className={`text-[10px] ${activeDoctor === "Dr. Nitin Bhalme" ? "text-emerald-100" : "text-slate-400"}`}>(Skin &amp; VD)</span>
               </button>
               <button
                 type="button"
-                onClick={() => switchDoctor("Dr. Swati Gandhi")}
+                onClick={() => switchDoctor("Dr. Minal Bhalme")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  activeDoctor === "Dr. Swati Gandhi"
+                  activeDoctor === "Dr. Minal Bhalme"
                     ? "bg-pink-600 text-white shadow-sm hover:bg-pink-700"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${activeDoctor === "Dr. Swati Gandhi" ? "bg-pink-200" : "bg-pink-500"}`} />
-                <span>Dr. Swati Gandhi</span>
-                <span className={`text-[10px] ${activeDoctor === "Dr. Swati Gandhi" ? "text-pink-100" : "text-slate-400"}`}>(Gynae)</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${activeDoctor === "Dr. Minal Bhalme" ? "bg-pink-200" : "bg-pink-500"}`} />
+                <span>Dr. Minal Bhalme</span>
+                <span className={`text-[10px] ${activeDoctor === "Dr. Minal Bhalme" ? "text-pink-100" : "text-slate-400"}`}>(Gynae)</span>
               </button>
             </div>
 

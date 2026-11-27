@@ -22,7 +22,7 @@ export default function IpdPrintBedTicketModal({
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
         <div className="text-center border-b border-slate-200 pb-3">
-          <h2 className="text-lg font-black text-slate-900 tracking-tight">GANDHI HOSPITAL</h2>
+          <h2 className="text-lg font-black text-slate-900 tracking-tight">BHALME CLINIC</h2>
           <p className="text-[11px] text-slate-500">INPATIENT ADMISSION CARD & BED TICKET</p>
         </div>
 

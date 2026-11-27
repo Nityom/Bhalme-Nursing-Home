@@ -158,7 +158,7 @@ export default function PrescriptionLivePreview({
   const activeDoc = getDoctorProfile(selectedDoctorName);
   const isGyno =
     activeDoc?.specialty === 'gynecology' ||
-    /gyne|swati|shillpa|shilpa|obs|maternity/i.test(selectedDoctorName || '');
+    /gyne|minal|swati|shillpa|shilpa|obs|maternity/i.test(selectedDoctorName || '');
 
   const includeHeaderFooter = enabledSections?.header_footer !== false;
   const chiefComplaintText =
@@ -544,7 +544,7 @@ export default function PrescriptionLivePreview({
                   );
                   const sig = docObj?.signature_url;
                   if (!sig)
-                    return /(swati|shillpa|shilpa|anjali)/i.test(selectedDoctorName || '')
+                    return /(minal|swati|shillpa|shilpa|anjali)/i.test(selectedDoctorName || '')
                       ? '/sign1.png'
                       : '/sign.png';
                   if (
@@ -561,7 +561,7 @@ export default function PrescriptionLivePreview({
             </div>
           )}
           <div className="font-bold text-base sm:text-lg text-slate-900">
-            {selectedDoctorName || 'Dr. Rajesh Gandhi'}
+            {selectedDoctorName || 'Dr. Nitin Bhalme'}
           </div>
           {!includeSignature && (
             <div className="text-[10px] text-slate-400 italic">

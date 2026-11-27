@@ -384,7 +384,7 @@ export const mergeSamikshaToGNH0069 = mutation({
                     phone: "9665651439",
                     address: "waigao",
                     age: 21,
-                    doctor_name: "Dr. Swati Gandhi",
+                    doctor_name: "Dr. Minal Bhalme",
                 });
                 for (let i = 1; i < items.length; i++) {
                     await ctx.db.delete(items[i]._id);
@@ -405,7 +405,7 @@ export const mergeSamikshaToGNH0069 = mutation({
                 age: "21",
                 sex: "Female",
                 address: "waigao",
-                doctor: "Dr. Swati Gandhi",
+                doctor: "Dr. Minal Bhalme",
                 department: "Obstetrics & Gynaecology",
             });
             for (let i = 1; i < opdMatches.length; i++) {

@@ -6,27 +6,27 @@ import { v } from "convex/values";
  */
 const DEFAULT_MAIN_DOCTORS = [
   {
-    name: "Dr. Rajesh Gandhi",
+    name: "Dr. Nitin Bhalme",
     doctor_type: "MAIN" as const,
     commission_percentage: undefined,
-    phone: "9917606732",
+    phone: "7385381369",
     status: "ACTIVE" as const,
     joining_date: "2024-01-01",
     signature_url: "",
-    notes: "Orthopaedic & Joint Replacement Surgeon",
+    notes: "Dermatology & Venereology (M.B.B.S., DVD | Reg. No. 077462)",
     first_visit_fee: 400,
     followup_fee: 300,
     followup_validity_days: 30,
   },
   {
-    name: "Dr. Swati Gandhi",
+    name: "Dr. Minal Bhalme",
     doctor_type: "MAIN" as const,
     commission_percentage: undefined,
-    phone: "9917606732",
+    phone: "7385381369",
     status: "ACTIVE" as const,
     joining_date: "2024-01-01",
     signature_url: "",
-    notes: "Gynecologist & Obstetrician",
+    notes: "Obstetrics & Gynaecology (M.B.B.S., DGO | Reg. No. 081237)",
     first_visit_fee: 200,
     followup_fee: 100,
     followup_validity_days: 10,
@@ -35,7 +35,7 @@ const DEFAULT_MAIN_DOCTORS = [
 
 function getDefaultDoctorFees(name: string) {
   const lower = (name || "").toLowerCase();
-  if (/gyne|swati|shillpa|shilpa|obs|maternity/i.test(lower)) {
+  if (/gyne|minal|swati|shillpa|shilpa|obs|maternity/i.test(lower)) {
     return { first_visit_fee: 200, followup_fee: 100, followup_validity_days: 10 };
   }
   return { first_visit_fee: 400, followup_fee: 300, followup_validity_days: 30 };

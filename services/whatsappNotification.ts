@@ -1,5 +1,5 @@
 /**
- * WhatsApp Notification Service for Bhalme Nursing Home Admin
+ * WhatsApp Notification Service for Bhalme Clinic Admin
  * Sends instant prescription links & confirmations to patient WhatsApp numbers.
  */
 

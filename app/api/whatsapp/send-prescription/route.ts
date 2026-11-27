@@ -43,10 +43,10 @@ export async function POST(req: NextRequest) {
     const liveSiteBase = process.env.NEXT_PUBLIC_CONVEX_SITE_URL;
     const prescriptionUrl = `${liveSiteBase}/print-prescription?id=${encodeURIComponent(prescriptionId)}`;
 
-    const message = `🏥 *GANDHI HOSPITAL, WARDHA*
+    const message = `🏥 *BHALME CLINIC*
 Hello *${patientName || 'Patient'}* 👋
 
-Your digital prescription from *${doctorName || 'Dr. Rajesh Gandhi'}* has been generated.
+Your digital prescription from *${doctorName || 'Dr. Nitin Bhalme'}* has been generated.
 
 📅 *Date:* ${displayDate}
 🩺 *Diagnosis:* ${diagnosis || 'Consultation'}
@@ -54,7 +54,7 @@ Your digital prescription from *${doctorName || 'Dr. Rajesh Gandhi'}* has been g
 🔗 *View / Print Your Prescription:*
 ${prescriptionUrl}
 
-_Please take your medications as directed. For any help, reply to this WhatsApp chat or call reception at 07152-255795._ ❤️`;
+_Please take your medications as directed. For any help, reply to this WhatsApp chat (9422144878) or call enquiry at 7385381369._ ❤️`;
 
     if (!token || !phoneNumberId) {
       console.log(`[Bhalme Admin WhatsApp Mock] To: +${cleaned}\nMessage:\n${message}`);

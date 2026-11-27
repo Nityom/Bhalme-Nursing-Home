@@ -120,7 +120,7 @@ http.route({
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prescription Not Found - Bhalme Nursing Home</title>
+  <title>Prescription Not Found - Bhalme Clinic</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 50px 20px; background: #f8fafc; color: #334155; }
     .card { background: white; max-width: 480px; margin: 0 auto; padding: 40px 24px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
@@ -132,7 +132,7 @@ http.route({
   <div class="card">
     <h2>Prescription Not Found</h2>
     <p>We could not find a prescription with ID: <code>${id}</code>.</p>
-    <p>Please contact Bhalme Nursing Home reception at <strong>07152-255795</strong> or reply on WhatsApp.</p>
+    <p>Please contact Bhalme Clinic reception at <strong>7385381369</strong> or reply on WhatsApp (<strong>9422144878</strong>).</p>
   </div>
 </body>
 </html>`,
@@ -143,23 +143,23 @@ http.route({
     // Doctor profile resolution matching config/hospital.ts
     const resolvedDoctorName = (rx.doctor_name || "Dr. Nitin Bhalme").trim();
     const isGyno =
-      /gyne|shillpa|shilpa|obs|maternity/i.test(resolvedDoctorName);
+      /gyne|minal|swati|shillpa|shilpa|obs|maternity/i.test(resolvedDoctorName);
 
     const docConfig = isGyno
       ? {
-          name: "Dr. Nitin Bhalme",
-          degrees: "M.B.B.S., M.D. (Gynecology & Obstetrics)",
-          reg: "Reg. No. 2004/05/1842",
-          diplomate: "Consulting Gynecologist & Obstetrician",
+          name: "Dr. Minal Bhalme",
+          degrees: "M.B.B.S., DGO",
+          reg: "Reg. No. 081237",
+          diplomate: "Consulting Obstetrician & Gynaecologist",
           specialty: "Maternity, Infertility & Women Care Specialist",
           signature: SIGN_SHILLPA_BASE64,
         }
       : {
           name: "Dr. Nitin Bhalme",
-          degrees: "M.B.B.S., Dip.Ortho., DNB Ortho",
-          reg: "Reg. No. 1692/03/2002",
-          diplomate: "Diplomate of National Board (Orthopaedics)",
-          specialty: "Consulting Orthopaedic and Joint Replacement Surgeon",
+          degrees: "M.B.B.S., DVD",
+          reg: "Reg. No. 077462",
+          diplomate: "Consulting Dermatologist & Venereologist",
+          specialty: "Skin, Hair, Nail & VD Specialist",
           signature: SIGN_VIPEEN_BASE64,
         };
 
@@ -240,7 +240,7 @@ http.route({
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
-  <title>Prescription - ${rx.patient_name || "Patient"} - Bhalme Nursing Home</title>
+  <title>Prescription - ${rx.patient_name || "Patient"} - Bhalme Clinic</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -982,7 +982,7 @@ http.route({
   <!-- Top Navigation / Action Bar (Screen Only) -->
   <div class="top-action-bar no-print">
     <div class="top-action-bar-left">
-      <span>🏥 Official Digital Prescription &bull; Bhalme Nursing Home</span>
+      <span>🏥 Official Digital Prescription &bull; Bhalme Clinic</span>
     </div>
     <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
   </div>
@@ -1005,7 +1005,7 @@ http.route({
           <!-- Official Header Row -->
           <div class="header-row">
             <div style="display: flex; align-items: center;">
-              <img src="${BHALME_LOGO_BASE64}" alt="Bhalme Nursing Home" class="hospital-logo" />
+              <img src="${BHALME_LOGO_BASE64}" alt="Bhalme Clinic" class="hospital-logo" />
             </div>
 
             <div class="doctor-header-block">
@@ -1133,20 +1133,20 @@ http.route({
           <!-- Schedule Banner -->
           <div class="footer-banner-container">
             <div class="footer-top-pill-row">
-              <span class="clinic-pill">HIP &amp; KNEE JOINT CLINIC</span>
-              <span class="clinic-time">&bull; Every Thursday 6 pm to 8 pm</span>
+              <span class="clinic-pill">BHALME CLINIC</span>
+              <span class="clinic-time">&bull; Skin, VD &amp; Gynaecology</span>
             </div>
 
-            <div class="footer-clinic-title">Dedicated to Complete Orthopaedic, Maternity &amp; Family Care</div>
+            <div class="footer-clinic-title">Dedicated to Complete Dermatology, Maternity &amp; Family Care</div>
 
             <div class="footer-opd-line">
-              <span class="footer-opd-label">OPD Time : </span>Mon. to Sat. - 10:30 am to 1:00 pm &amp; 6:00 pm to 7:30 pm | Sunday Closed
+              <span class="footer-opd-label">OPD Time : </span>Dr. Nitin: 10:00 AM - 7:30 PM | Dr. Minal: 11:00 AM - 2:00 PM | Sunday Closed
             </div>
 
-            <div class="footer-sunday-line">Sunday OPD Closed</div>
+            <div class="footer-sunday-line">Sunday Closed</div>
 
             <div class="footer-address-line">
-              Bhalme Nursing Home, Aarti Chowk, Nagpur Road, Wardha - 442001 &nbsp;|&nbsp; Ph. : 07152-255795, 9373280505
+              Bhalme Clinic, Station Road, Wardha - 442001 &nbsp;|&nbsp; Enquiry: 7385381369, WhatsApp: 9422144878
             </div>
 
             <div class="footer-bottom-bar"></div>

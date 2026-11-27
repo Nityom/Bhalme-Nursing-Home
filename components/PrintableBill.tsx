@@ -73,7 +73,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
   termsAndConditions = 'All disputes are subject to Wardha jurisdiction only',
   showPrintButton = true,
   signature = 'sign.png',
-  doctorName = 'Dr. Rajesh Gandhi',
+  doctorName = 'Dr. Nitin Bhalme',
   paymentTransactions = [],
   referenceNumber,
   prescriptionId,
@@ -142,7 +142,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
   };
 
   const getSignatureSrc = (sig?: string) => {
-    const isDocShillpa = /swati|shillpa|shilpa|gyn/i.test(doctorName || '');
+    const isDocShillpa = /minal|swati|shillpa|shilpa|gyn/i.test(doctorName || '');
     if (!sig || sig === 'sign.png' || sig === '/sign.png') {
       return isDocShillpa ? '/sign1.png' : '/sign.png';
     }
@@ -552,7 +552,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
                 <h1 className="font-extrabold text-[12px] uppercase tracking-wide text-gray-900 leading-tight">
                   {hospitalConfig.name}
                 </h1>
-                <p className="text-[8px] font-semibold text-emerald-800">Gandhi Hospital</p>
+                <p className="text-[8px] font-semibold text-emerald-800">Bhalme Clinic</p>
               </div>
             </div>
             <p className="text-[8.5px] text-gray-700 leading-tight mt-1">
@@ -994,13 +994,13 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
             />
             <div>
               <h1 className="text-base sm:text-lg font-black tracking-tight uppercase text-black leading-tight">
-                {hospitalConfig.legalName || 'GANDHI HOSPITAL'}
+                {hospitalConfig.legalName || 'BHALME CLINIC'}
               </h1>
               <p className="text-xs text-gray-800 leading-tight">
                 {hospitalConfig.address.fullFormatted || 'Nagpur Road Wardha'}
               </p>
               <p className="text-xs text-gray-800 leading-tight">
-                Ph No. {hospitalConfig.contacts.mobile || '9373280505'}
+                Ph No. {hospitalConfig.contacts.mobile || '7385381369'}
               </p>
               <p className="text-xs text-gray-800 leading-tight">
                 NMC Reg. No.: WNH-074
@@ -1067,7 +1067,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
               </div>
               <div className="flex">
                 <span className="w-32 font-semibold text-gray-800 shrink-0">Consultant :</span>
-                <span className="font-bold uppercase text-black">{doctorName || 'Dr. RAJESH GANDHI'}</span>
+                <span className="font-bold uppercase text-black">{doctorName || 'Dr. NITIN BHALME'}</span>
               </div>
               <div className="flex">
                 <span className="w-32 font-semibold text-gray-800 shrink-0">Payment Category :</span>

@@ -47,7 +47,7 @@ function PrintBillContent() {
   const searchParams = useSearchParams();
   const billId = searchParams.get('billId') || searchParams.get('id');
   const signatureParam = searchParams.get('signature') || 'sign.png';
-  const doctorNameParam = searchParams.get('doctorName') || 'Dr. Rajesh Gandhi';
+  const doctorNameParam = searchParams.get('doctorName') || 'Dr. Nitin Bhalme';
   const includeSigParam = searchParams.get('includeSignature');
   const includeSignature = includeSigParam !== 'false';
   const [billData, setBillData] = useState<BillData | null>(null);
@@ -152,7 +152,7 @@ function PrintBillContent() {
                 const match = (allDocs || []).find((d: any) => d.name.toLowerCase() === rxDocName.toLowerCase());
                 if (match?.signature_url) {
                   sigUrl = match.signature_url;
-                } else if (/swati|shillpa|shilpa|anjali|gyn/i.test(rxDocName)) {
+                } else if (/minal|swati|shillpa|shilpa|anjali|gyn/i.test(rxDocName)) {
                   sigUrl = 'sign1.png';
                 }
               }
@@ -166,11 +166,11 @@ function PrintBillContent() {
             const match = (allDocs || []).find((d: any) => d.name.toLowerCase() === docName.toLowerCase());
             if (match?.signature_url) {
               sigUrl = match.signature_url;
-            } else if (/swati|shillpa|shilpa|anjali|gyn/i.test(docName)) {
+            } else if (/minal|swati|shillpa|shilpa|anjali|gyn/i.test(docName)) {
               sigUrl = 'sign1.png';
             }
           } catch {
-            if (/swati|shillpa|shilpa|anjali|gyn/i.test(docName)) {
+            if (/minal|swati|shillpa|shilpa|anjali|gyn/i.test(docName)) {
               sigUrl = 'sign1.png';
             }
           }

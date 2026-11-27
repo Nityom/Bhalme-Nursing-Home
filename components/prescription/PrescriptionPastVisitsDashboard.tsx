@@ -95,7 +95,7 @@ export default function PrescriptionPastVisitsDashboard({
   onCreateNewVisit,
   onEditPastVisit,
   onCloseDashboard,
-  selectedDoctorName = 'Dr. Swati Gandhi',
+  selectedDoctorName = 'Dr. Minal Bhalme',
   handleDoctorSelect,
   availableDoctors = [],
   onOpenEmailModal,
@@ -256,9 +256,9 @@ export default function PrescriptionPastVisitsDashboard({
 
   const activeVitals = activeVisit?.vitals || {};
   const isGynae =
+    (selectedDoctorName || '').toLowerCase().includes('minal') ||
     (selectedDoctorName || '').toLowerCase().includes('swati') ||
-    (selectedDoctorName || '').toLowerCase().includes('swati') ||
-    (activeVisit?.doctor_name || '').toLowerCase().includes('swati') ||
+    (activeVisit?.doctor_name || '').toLowerCase().includes('minal') ||
     (activeVisit?.doctor_name || '').toLowerCase().includes('swati');
 
   return (

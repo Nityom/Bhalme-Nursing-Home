@@ -1,14 +1,10 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
+import ResetPassword from "@/components/ResetPassword";
 
 export default function ResetPasswordPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace("/admin/opd");
-  }, [router]);
-
-  return null;
+  return (
+    <Suspense fallback={null}>
+      <ResetPassword />
+    </Suspense>
+  );
 }

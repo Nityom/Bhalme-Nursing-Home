@@ -102,10 +102,10 @@ export default function IpdBedMatrixTab({
       // 2. Doctor filter
       if (selectedDoctorFilter !== "All") {
         const docLower = (adm.consultantDoctor || "").toLowerCase();
-        if (selectedDoctorFilter === "Dr. Swati Gandhi") {
-          if (!docLower.includes("swati") && !docLower.includes("swati")) return false;
-        } else if (selectedDoctorFilter === "Dr. Rajesh Gandhi") {
-          if (docLower.includes("swati") || docLower.includes("swati")) return false;
+        if (selectedDoctorFilter === "Dr. Minal Bhalme") {
+          if (!docLower.includes("minal") && !docLower.includes("swati")) return false;
+        } else if (selectedDoctorFilter === "Dr. Nitin Bhalme") {
+          if (docLower.includes("minal") || docLower.includes("swati")) return false;
         } else {
           if (!docLower.includes(selectedDoctorFilter.toLowerCase())) return false;
         }

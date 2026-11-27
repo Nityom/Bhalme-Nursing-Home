@@ -338,7 +338,7 @@ export const syncLocalItems = mutation({
           address: item.address,
           email: item.email,
           whatsapp_number: item.whatsapp_number,
-          doctor: item.doctor || "Dr. Rajesh Gandhi",
+          doctor: item.doctor || "Dr. Nitin Bhalme",
           department: item.department || "General",
           priority: item.priority || "Normal",
           visitType: item.visitType || "New Registration",

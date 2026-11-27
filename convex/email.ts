@@ -124,7 +124,7 @@ function buildHtmlTemplate(
   doctorTitle: string,
   isGynae: boolean
 ) {
-  const docName = data.doctorName || (isGynae ? "Dr. Nitin Bhalme" : "Dr. Nitin Bhalme");
+  const docName = data.doctorName || (isGynae ? "Dr. Minal Bhalme" : "Dr. Nitin Bhalme");
   const v = data.vitals || {};
   const patientRefClean = data.referenceNumber ? data.referenceNumber.replace(/^CH/i, "CRX") : "CRX";
 
@@ -147,7 +147,7 @@ function buildHtmlTemplate(
 <body style="margin: 0; padding: 20px 10px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.6; -webkit-font-smoothing: antialiased;">
   
   <div style="display:none;font-size:1px;color:#f8fafc;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
-    Digital Prescription issued for ${data.patientName} (${patientRefClean}) from Bhalme Nursing Home. Official prescription PDF attached.
+    Digital Prescription issued for ${data.patientName} (${patientRefClean}) from Bhalme Clinic. Official prescription PDF attached.
   </div>
 
   <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
@@ -157,13 +157,13 @@ function buildHtmlTemplate(
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
           <td style="vertical-align: middle;">
-            <img src="${bhalmeLogoSrc}" alt="Bhalme Nursing Home" style="height: 58px; width: auto; max-width: 175px; display: block;" />
+            <img src="${bhalmeLogoSrc}" alt="Bhalme Clinic" style="height: 58px; width: auto; max-width: 175px; display: block;" />
           </td>
           <td style="text-align: right; vertical-align: middle;">
-            <div style="font-size: 14px; font-weight: 800; color: #0f172a; letter-spacing: -0.2px;">BHALME NURSING HOME</div>
-            <div style="font-size: 11px; color: #64748b; margin-top: 1px;">Hospital</div>
-            <div style="font-size: 10.5px; color: #64748b; margin-top: 1px;">Aarti Chowk, Nagpur Rd, Wardha</div>
-            <div style="font-size: 11px; color: #7B1828; font-weight: 700; margin-top: 2px;">Ph: 07152-255795 • 9373280505</div>
+            <div style="font-size: 14px; font-weight: 800; color: #0f172a; letter-spacing: -0.2px;">BHALME CLINIC</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 1px;">Skin, VD &amp; Gynaecology Clinic</div>
+            <div style="font-size: 10.5px; color: #64748b; margin-top: 1px;">Station Road, Wardha</div>
+            <div style="font-size: 11px; color: #7B1828; font-weight: 700; margin-top: 2px;">Enquiry: 7385381369 • WhatsApp: 9422144878</div>
           </td>
         </tr>
       </table>
@@ -176,7 +176,7 @@ function buildHtmlTemplate(
     <div style="padding: 24px; font-size: 15px; line-height: 1.7; color: #334155;">
       <p style="margin: 0 0 16px 0;">Dear <strong>${data.patientName}</strong>,</p>
 
-      <p style="margin: 0 0 16px 0;">Thank you for visiting Bhalme Nursing Home.</p>
+      <p style="margin: 0 0 16px 0;">Thank you for visiting Bhalme Clinic.</p>
 
       <p style="margin: 0 0 16px 0;">Please find attached your digital prescription issued by <strong>${docName}</strong> following your recent consultation.</p>
 
@@ -188,9 +188,9 @@ function buildHtmlTemplate(
 
       <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
         <p style="margin: 0 0 4px 0; color: #64748b; font-size: 14px;">Warm regards,</p>
-        <p style="margin: 0 0 2px 0; font-weight: 800; color: #0f172a; font-size: 15px;">Bhalme Nursing Home</p>
+        <p style="margin: 0 0 2px 0; font-weight: 800; color: #0f172a; font-size: 15px;">Bhalme Clinic</p>
         <p style="margin: 0 0 4px 0; font-weight: 700; color: #7B1828; font-size: 14px;">${docName}</p>
-        <p style="margin: 0; font-weight: 600; color: #0d9488; font-size: 13px;">📞 07152-255795 | 9373280505</p>
+        <p style="margin: 0; font-weight: 600; color: #0d9488; font-size: 13px;">📞 Enquiry: 7385381369 | WhatsApp: 9422144878</p>
       </div>
 
       ${
@@ -230,8 +230,8 @@ function buildHtmlTemplate(
 
     <!-- Clean Footer -->
     <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px; text-align: center; color: #94a3b8; font-size: 11px; line-height: 1.6;">
-      <div>Bhalme Nursing Home • Aarti Chowk, Nagpur Road, Wardha - 442001</div>
-      <div>OPD Timings: Mon-Fri: 10:00 AM - 1:00 PM, 6:00 PM - 8:00 PM | Sunday Closed</div>
+      <div>Bhalme Clinic • Station Road, Wardha - 442001</div>
+      <div>OPD Timings: Dr. Nitin: 10:00 AM - 7:30 PM | Dr. Minal: 11:00 AM - 2:00 PM | Sunday Closed</div>
       <div style="margin-top: 6px; font-size: 11px; color: #64748b; font-weight: 600;">
         Powered by <strong style="color: #0d9488; font-weight: 800;">Svaasth-HMS</strong>
       </div>
@@ -335,7 +335,7 @@ async function generatePrescriptionPdf(
   }
 
   // Doctor Details
-  const docName = data.doctorName || (isGynae ? "Dr. Nitin Bhalme" : "Dr. Nitin Bhalme");
+  const docName = data.doctorName || (isGynae ? "Dr. Minal Bhalme" : "Dr. Nitin Bhalme");
   const docTitleW = boldFont.widthOfTextAtSize(docName, 15);
   page.drawText(docName, {
     x: PAGE_W - MARGIN_X - docTitleW,
@@ -346,7 +346,7 @@ async function generatePrescriptionPdf(
   });
 
   if (isGynae) {
-    const l1 = "M.B.B.S., M.D. (Gynecology & Obstetrics)";
+    const l1 = "M.B.B.S., DGO";
     page.drawText(l1, {
       x: PAGE_W - MARGIN_X - regularFont.widthOfTextAtSize(l1, 8.5),
       y: y - 16,
@@ -355,7 +355,7 @@ async function generatePrescriptionPdf(
       color: rgb(0.25, 0.3, 0.38),
     });
 
-    const l2 = "Reg. No. 2004/05/1842";
+    const l2 = "Reg. No. 081237";
     page.drawText(l2, {
       x: PAGE_W - MARGIN_X - regularFont.widthOfTextAtSize(l2, 7.5),
       y: y - 27,
@@ -364,7 +364,7 @@ async function generatePrescriptionPdf(
       color: rgb(0.45, 0.5, 0.55),
     });
 
-    const l3 = "Consulting Gynecologist & Obstetrician";
+    const l3 = "Consulting Obstetrician & Gynaecologist";
     page.drawText(l3, {
       x: PAGE_W - MARGIN_X - boldFont.widthOfTextAtSize(l3, 8),
       y: y - 37,
@@ -382,7 +382,7 @@ async function generatePrescriptionPdf(
       color: darkSlateColor,
     });
   } else {
-    const l1 = "M.B.B.S., Dip.Ortho., DNB Ortho";
+    const l1 = "M.B.B.S., DVD";
     page.drawText(l1, {
       x: PAGE_W - MARGIN_X - regularFont.widthOfTextAtSize(l1, 8.5),
       y: y - 16,
@@ -391,7 +391,7 @@ async function generatePrescriptionPdf(
       color: rgb(0.25, 0.3, 0.38),
     });
 
-    const l2 = "Reg. No. 1692/03/2002";
+    const l2 = "Reg. No. 077462";
     page.drawText(l2, {
       x: PAGE_W - MARGIN_X - regularFont.widthOfTextAtSize(l2, 7.5),
       y: y - 27,
@@ -400,7 +400,7 @@ async function generatePrescriptionPdf(
       color: rgb(0.45, 0.5, 0.55),
     });
 
-    const l3 = "Diplomate of National Board (Orthopaedics)";
+    const l3 = "Consulting Dermatologist & Venereologist";
     page.drawText(l3, {
       x: PAGE_W - MARGIN_X - boldFont.widthOfTextAtSize(l3, 8),
       y: y - 37,
@@ -409,7 +409,7 @@ async function generatePrescriptionPdf(
       color: darkSlateColor,
     });
 
-    const l4 = "Consulting Orthopaedic and Joint Replacement Surgeon";
+    const l4 = "Skin, Hair, Nail & VD Specialist";
     page.drawText(l4, {
       x: PAGE_W - MARGIN_X - regularFont.widthOfTextAtSize(l4, 8),
       y: y - 47,
@@ -763,7 +763,7 @@ async function generatePrescriptionPdf(
     color: darkSlateColor,
   });
 
-  const isGynoEmail = /gyne|shillpa|shilpa|obs|maternity/i.test(docName || '');
+  const isGynoEmail = /gyne|minal|swati|shillpa|shilpa|obs|maternity/i.test(docName || '');
   if (!isGynoEmail) {
     page.drawText("* Prescription is valid for 30 days only", {
       x: MARGIN_X,
@@ -789,7 +789,7 @@ async function generatePrescriptionPdf(
     color: rgb(0.8, 0.83, 0.88),
   });
 
-  const sched1 = "HIP & KNEE JOINT CLINIC  •  Every Thursday 6 pm to 8 pm";
+  const sched1 = "Dermatology, Venereology & Women Care  •  Sunday Closed";
   const s1W = boldFont.widthOfTextAtSize(sched1, 7.5);
   page.drawText(sched1, {
     x: (PAGE_W - s1W) / 2,
@@ -799,7 +799,7 @@ async function generatePrescriptionPdf(
     color: maroonColor,
   });
 
-  const clinicTitle = "Orthopaedics Clinic";
+  const clinicTitle = "Bhalme Clinic";
   const ctW = boldFont.widthOfTextAtSize(clinicTitle, 8);
   page.drawText(clinicTitle, {
     x: (PAGE_W - ctW) / 2,
@@ -809,7 +809,7 @@ async function generatePrescriptionPdf(
     color: blackColor,
   });
 
-  const opdTimes = "OPD Time: Mon. to Fri. - 10 am to 1 pm & 6 pm to 8 pm | Sat. - 10 am to 1 pm & Evening OPD Closed | Sunday OPD Closed";
+  const opdTimes = "OPD Time: Dr. Nitin: 10:00 AM - 7:30 PM | Dr. Minal: 11:00 AM - 2:00 PM | Sunday Closed";
   const otW = regularFont.widthOfTextAtSize(opdTimes, 6.8);
   page.drawText(opdTimes, {
     x: (PAGE_W - otW) / 2,
@@ -819,7 +819,7 @@ async function generatePrescriptionPdf(
     color: darkSlateColor,
   });
 
-  const hospAddress = "Bhalme Nursing Home, Aarti Chowk, Nagpur Road, Wardha - 442001  |  Ph. : 07152-255795, Cell : 9373280505";
+  const hospAddress = "Bhalme Clinic, Station Road, Wardha - 442001  |  Enquiry: 7385381369, WhatsApp: 9422144878";
   const haW = regularFont.widthOfTextAtSize(hospAddress, 6.8);
   page.drawText(hospAddress, {
     x: (PAGE_W - haW) / 2,
@@ -836,7 +836,7 @@ async function generatePrescriptionPdf(
     color: maroonColor,
   });
 
-  const svasthFooter = "Powered by Svaasth HMS • Bhalme Nursing Home EMR";
+  const svasthFooter = "Powered by Svaasth HMS • Bhalme Clinic EMR";
   const sfW = regularFont.widthOfTextAtSize(svasthFooter, 7);
   const svasthPdfBytes = await fetchRemoteAsset(`${rawBase}/Svaasth_logo.png`);
   if (svasthPdfBytes) {
@@ -894,36 +894,36 @@ export const sendPrescriptionEmail = action({
 
     const docName = args.doctorName || "Dr. Nitin Bhalme";
     const isGynae =
-      docName.toLowerCase().includes("swati") ||
+      docName.toLowerCase().includes("minal") ||
       docName.toLowerCase().includes("swati") ||
       docName.toLowerCase().includes("gynae");
 
     const doctorEmail = isGynae
-      ? "drnitinbhalme@gmail.com"
+      ? "drminalbhalme@gmail.com"
       : "drnitinbhalme@gmail.com";
     const doctorTitle = isGynae
-      ? "M.B.B.S., M.D. - Consulting Gynecologist & Obstetrician"
-      : "M.B.B.S., Dip.Ortho., DNB Ortho - Consulting Orthopaedic and Joint Replacement Surgeon";
-    const senderDisplayName = `${docName} (Bhalme Nursing Home)`;
+      ? "M.B.B.S., DGO - Consulting Obstetrician & Gynaecologist"
+      : "M.B.B.S., DVD - Consulting Dermatologist & Venereologist";
+    const senderDisplayName = `${docName} (Bhalme Clinic)`;
 
     const patientRefClean = args.referenceNumber
       ? args.referenceNumber.replace(/^CH/i, "CRX")
       : "CRX";
-    const subject = `Prescription: ${args.patientName} (${patientRefClean}) - Bhalme Nursing Home`;
+    const subject = `Prescription: ${args.patientName} (${patientRefClean}) - Bhalme Clinic`;
 
     const html = buildHtmlTemplate(args, doctorEmail, doctorTitle, isGynae);
     const text = `Dear ${args.patientName},
 
-Thank you for visiting Bhalme Nursing Home.
+Thank you for visiting Bhalme Clinic.
 Please find attached your digital prescription issued by ${docName} following your recent consultation.
 The attached PDF contains your prescribed medications, dosage instructions, medical advice and follow-up details.
 Please keep this prescription for your records and refer to it when required.
 For any queries or assistance, feel free to contact us.
 
 Warm regards,
-Bhalme Nursing Home
+Bhalme Clinic
 ${docName}
-📞 07152-255795 | 9373280505
+📞 Enquiry: 7385381369 | WhatsApp: 9422144878
 
 ---
 Powered by Svaasth-HMS (Hospital Management System)`;

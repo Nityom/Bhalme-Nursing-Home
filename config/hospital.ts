@@ -15,7 +15,7 @@ export interface DoctorProfile {
   fellowshipOrDiplomate?: string;
   designation: string;
   subSpecialty?: string;
-  specialty: 'orthopaedic' | 'gynecology' | 'dental' | 'general' | 'pediatric' | 'other';
+  specialty: 'dermatology' | 'orthopaedic' | 'gynecology' | 'dental' | 'general' | 'pediatric' | 'other';
   email: string;
   signatureUrl: string;
   consultationFee: {
@@ -83,27 +83,27 @@ export interface HospitalConfig {
 }
 
 export const hospitalConfig: HospitalConfig = {
-  id: "gandhi-hospital",
-  name: "Gandhi Hospital",
-  legalName: "Gandhi Hospital",
-  tagline: "Nursing Home & Healthcare Center",
+  id: "bhalme-clinic",
+  name: "Bhalme Clinic",
+  legalName: "Bhalme Clinic",
+  tagline: "Dermatology, Venereology & Obstetrics-Gynaecology Clinic",
   address: {
     line1: "Near Main Market",
     line2: "Station Road",
     city: "Wardha",
     state: "Maharashtra",
     pincode: "442001",
-    fullFormatted: "Gandhi Hospital, Station Road, Wardha - 442001",
+    fullFormatted: "Bhalme Clinic, Station Road, Wardha - 442001",
   },
   contacts: {
-    phones: ["9822000000"],
-    mobile: "9822000000",
-    whatsapp: "919822000000",
-    email: "gandhihospital@gmail.com",
+    phones: ["7385381369", "9422144878"],
+    mobile: "7385381369",
+    whatsapp: "919422144878",
+    email: "bhalmeclinic@gmail.com",
   },
   schedule: {
-    opdTimings: "Mon. to Sat. - 10 am to 2 pm & 6 pm to 9 pm | Sunday Closed",
-    sundayStatus: "Sunday OPD Closed",
+    opdTimings: "Dr. Nitin Bhalme: 10:00 AM to 7:30 PM | Dr. Minal Bhalme: 11:00 AM to 2:00 PM | Sunday Closed",
+    sundayStatus: "Sunday Closed",
   },
   branding: {
     primaryColor: "#0284c7", // Medical Blue
@@ -117,14 +117,14 @@ export const hospitalConfig: HospitalConfig = {
   },
   doctors: [
     {
-      id: "dr-rajesh-gandhi",
-      name: "Dr. Rajesh Gandhi",
-      degrees: "M.B.B.S., Dip.Ortho., DNB Ortho",
-      registrationNumber: "1692/03/2002",
-      fellowshipOrDiplomate: "Diplomate of National Board (Orthopaedics)",
-      designation: "Consulting Orthopaedic and Joint Replacement Surgeon",
-      specialty: "orthopaedic",
-      email: "drrajeshgandhi@gmail.com",
+      id: "dr-nitin-bhalme",
+      name: "Dr. Nitin Bhalme",
+      degrees: "M.B.B.S., DVD",
+      registrationNumber: "077462",
+      designation: "Consulting Dermatologist & Venereologist",
+      subSpecialty: "Skin, Hair, Nail & VD Specialist",
+      specialty: "dermatology",
+      email: "drnitinbhalme@gmail.com",
       signatureUrl: "",
       consultationFee: {
         firstVisit: 400,
@@ -133,14 +133,14 @@ export const hospitalConfig: HospitalConfig = {
       },
     },
     {
-      id: "dr-swati-gandhi",
-      name: "Dr. Swati Gandhi",
-      degrees: "M.B.B.S., M.D. (Gynecology & Obstetrics)",
-      registrationNumber: "2004/05/1842",
-      designation: "Consulting Gynecologist & Obstetrician",
+      id: "dr-minal-bhalme",
+      name: "Dr. Minal Bhalme",
+      degrees: "M.B.B.S., DGO",
+      registrationNumber: "081237",
+      designation: "Consulting Obstetrician & Gynaecologist",
       subSpecialty: "Maternity, Infertility & Women Care Specialist",
       specialty: "gynecology",
-      email: "drswatigandhi@gmail.com",
+      email: "drminalbhalme@gmail.com",
       signatureUrl: "",
       consultationFee: {
         firstVisit: 200,

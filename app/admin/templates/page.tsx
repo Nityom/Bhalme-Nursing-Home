@@ -102,8 +102,8 @@ export default function TemplatesManagementPage() {
   const [editingPrescriptionTemplate, setEditingPrescriptionTemplate] =
     useState<PrescriptionTemplate | null>(null);
   const [formName, setFormName] = useState('');
-  const [formCategory, setFormCategory] = useState('Orthopaedics');
-  const [formDoctorName, setFormDoctorName] = useState('Dr. Rajesh Gandhi');
+  const [formCategory, setFormCategory] = useState('Dermatology');
+  const [formDoctorName, setFormDoctorName] = useState('Dr. Nitin Bhalme');
   const [formDiagnosis, setFormDiagnosis] = useState('');
   const [formAdvice, setFormAdvice] = useState('');
   const [formDrNotes, setFormDrNotes] = useState('');
@@ -265,8 +265,8 @@ export default function TemplatesManagementPage() {
   const handleOpenCreatePrescriptionModal = () => {
     setEditingPrescriptionTemplate(null);
     setFormName('');
-    setFormCategory('Orthopaedics');
-    setFormDoctorName('Dr. Rajesh Gandhi');
+    setFormCategory('Dermatology');
+    setFormDoctorName('Dr. Nitin Bhalme');
     setFormDiagnosis('');
     setFormAdvice('');
     setFormDrNotes('');
@@ -294,8 +294,8 @@ export default function TemplatesManagementPage() {
   const handleOpenEditPrescriptionModal = (t: PrescriptionTemplate) => {
     setEditingPrescriptionTemplate(t);
     setFormName(t.name);
-    setFormCategory(t.category || 'Orthopaedics');
-    setFormDoctorName(t.doctor_name || 'Dr. Rajesh Gandhi');
+    setFormCategory(t.category || 'Dermatology');
+    setFormDoctorName(t.doctor_name || 'Dr. Nitin Bhalme');
     setFormDiagnosis(t.diagnosis || '');
     setFormAdvice(t.advice || '');
     setFormDrNotes(t.dr_notes || '');

@@ -19,8 +19,8 @@ function OPDCardContent() {
   const age = searchParams.get("age") || "";
   const sex = searchParams.get("sex") || "";
   const phone = searchParams.get("phone") || "";
-  const doctor = searchParams.get("doctor") || "Dr. Rajesh Gandhi";
-  const dept = searchParams.get("dept") || "Orthopaedics & Joint Replacement";
+  const doctor = searchParams.get("doctor") || "Dr. Nitin Bhalme";
+  const dept = searchParams.get("dept") || "Dermatology & Venereology";
   const bp = searchParams.get("bp") || "";
   const pulse = searchParams.get("pulse") || "";
   const spo2 = searchParams.get("spo2") || "";

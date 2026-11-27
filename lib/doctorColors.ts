@@ -1,16 +1,16 @@
 // lib/doctorColors.ts
 // Standard Doctor Branding & Color Schemes
-// Dr. Rajesh Gandhi (Orthopaedics) -> Green (Emerald)
-// Dr. Swati / Shilpa Raut (Gynaecology & Obstetrics) -> Pink
+// Dr. Nitin Bhalme (Dermatology & Venereology) -> Green (Emerald)
+// Dr. Minal Bhalme (Obstetrics & Gynaecology) -> Pink
 
 export function isShillpaDoctor(doctorName?: string): boolean {
   if (!doctorName) return false;
-  return /swati|shillpa|shilpa|anjali|gyn/i.test(doctorName);
+  return /minal|swati|shillpa|shilpa|anjali|gyn/i.test(doctorName);
 }
 
 export function isVipeenDoctor(doctorName?: string): boolean {
   if (!doctorName) return false;
-  return /rajesh|vipeen|vipen|ortho/i.test(doctorName);
+  return /nitin|rajesh|vipeen|vipen|derm|skin|ortho/i.test(doctorName);
 }
 
 export function getDoctorBadgeStyle(doctorName?: string) {

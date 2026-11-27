@@ -179,8 +179,8 @@ export default function AddMedicinePage() {
     return sortDirection === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />;
   };
 
-  const countVipeen = medicines.filter(m => (m.doctor_name || 'Both Doctors') === 'Dr. Rajesh Gandhi' || (m.doctor_name || 'Both Doctors') === 'Both Doctors').length;
-  const countShillpa = medicines.filter(m => (m.doctor_name || 'Both Doctors') === 'Dr. Swati Gandhi' || (m.doctor_name || 'Both Doctors') === 'Both Doctors').length;
+  const countVipeen = medicines.filter(m => (m.doctor_name || 'Both Doctors') === 'Dr. Nitin Bhalme' || (m.doctor_name || 'Both Doctors') === 'Both Doctors').length;
+  const countShillpa = medicines.filter(m => (m.doctor_name || 'Both Doctors') === 'Dr. Minal Bhalme' || (m.doctor_name || 'Both Doctors') === 'Both Doctors').length;
 
   return (
     <div className="min-h-screen bg-white w-full overflow-auto scrollbar-none">
@@ -189,7 +189,7 @@ export default function AddMedicinePage() {
           <header>
             <h1 className="text-3xl font-bold text-gray-800">Medicine Management</h1>
             <p className="text-gray-600 mt-1">
-              Add medicines and compositions tagged per doctor (Dr. Rajesh Gandhi / Dr. Swati Gandhi) to auto-populate prescriptions
+              Add medicines and compositions tagged per doctor (Dr. Nitin Bhalme / Dr. Minal Bhalme) to auto-populate prescriptions
             </p>
           </header>
           <Link
@@ -258,8 +258,8 @@ export default function AddMedicinePage() {
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition text-sm font-medium"
                   >
                     <option value="Both Doctors">Both Doctors (All)</option>
-                    <option value="Dr. Rajesh Gandhi">Dr. Rajesh Gandhi (Orthopaedic)</option>
-                    <option value="Dr. Swati Gandhi">Dr. Swati Gandhi (Gynecology)</option>
+                    <option value="Dr. Nitin Bhalme">Dr. Nitin Bhalme (Dermatology)</option>
+                    <option value="Dr. Minal Bhalme">Dr. Minal Bhalme (Gynecology)</option>
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
                     Shows in prescription dropdown when this doctor is selected
@@ -400,27 +400,27 @@ export default function AddMedicinePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedDoctorFilter('Dr. Rajesh Gandhi')}
+                  onClick={() => setSelectedDoctorFilter('Dr. Nitin Bhalme')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-                    selectedDoctorFilter === 'Dr. Rajesh Gandhi'
+                    selectedDoctorFilter === 'Dr. Nitin Bhalme'
                       ? 'bg-emerald-700 text-white shadow-xs'
                       : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                   }`}
                 >
                   <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                  Dr. Rajesh Gandhi ({countVipeen})
+                  Dr. Nitin Bhalme ({countVipeen})
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedDoctorFilter('Dr. Swati Gandhi')}
+                  onClick={() => setSelectedDoctorFilter('Dr. Minal Bhalme')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-                    selectedDoctorFilter === 'Dr. Swati Gandhi'
+                    selectedDoctorFilter === 'Dr. Minal Bhalme'
                       ? 'bg-purple-700 text-white shadow-xs'
                       : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
                   }`}
                 >
                   <span className="w-2 h-2 rounded-full bg-purple-400"></span>
-                  Dr. Swati Gandhi ({countShillpa})
+                  Dr. Minal Bhalme ({countShillpa})
                 </button>
               </div>
 
@@ -500,15 +500,15 @@ export default function AddMedicinePage() {
                                 )}
                               </td>
                               <td className="px-5 py-3.5 whitespace-nowrap">
-                                {docName === 'Dr. Rajesh Gandhi' ? (
+                                {docName === 'Dr. Nitin Bhalme' ? (
                                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-200">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                    Dr. Rajesh Gandhi
+                                    Dr. Nitin Bhalme
                                   </span>
-                                ) : docName === 'Dr. Swati Gandhi' ? (
+                                ) : docName === 'Dr. Minal Bhalme' ? (
                                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-purple-100 text-purple-800 px-2.5 py-0.5 rounded-full border border-purple-200">
                                     <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
-                                    Dr. Swati Gandhi
+                                    Dr. Minal Bhalme
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full">
